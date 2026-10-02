@@ -1,0 +1,6 @@
+{
+  "name": "StockSense — AI Inventory Management System",
+  "description": "Production-grade AI Inventory Management System for Nowshera Shopping Mall featuring strict role-based access control (Staff, Manager, Admin), Supabase transactional inventory mutations, audit logging, and n8n AI Copilot.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
