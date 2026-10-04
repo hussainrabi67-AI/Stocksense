@@ -12,7 +12,7 @@ import {
   Info
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { sendAIMessage, resetConversationId, setPendingRequestId, getPendingRequestId } from '../lib/ai';
+import { sendAIMessage, resetConversationId, setPendingRequestId, getPendingRequestId, getHumanName } from '../lib/ai';
 import { ChatMessage, Product } from '../types/inventory';
 import { AIStockConfirmationCard } from '../components/ai/AIStockConfirmationCard';
 import { Badge } from '../components/common/Badge';
@@ -25,12 +25,21 @@ interface AssistantPageProps {
 
 export const AssistantPage: React.FC<AssistantPageProps> = ({ onRefreshInventory }) => {
   const { user, role } = useAuth();
+  const humanName = getHumanName(user?.full_name, user?.email);
+
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    let welcome = `Assalam-o-Alaikum ${humanName}! 👋 I am your **Shopping Mall Management Assistant**.\n\nI can help you check product availability and retail prices, or record incoming shipments (**Stock In**) and stock deductions (**Stock Out**). How can I assist you today?`;
+    if (role === 'ADMIN') {
+      welcome = `Assalam-o-Alaikum ${humanName}! 👋 I am your **Shopping Mall Management Assistant**.\n\nAs an **Administrator**, you have full access to record Stock In/Out, inspect wholesale cost prices and profit margins, review the movement audit log, or check total store inventory valuation. How can I assist you today?`;
+    } else if (role === 'MANAGER') {
+      welcome = `Assalam-o-Alaikum ${humanName}! 👋 I am your **Shopping Mall Management Assistant**.\n\nAs a **Store Manager**, you can record stock movements, inspect profit margins and reorder alerts, and review today's movement history. What would you like to review?`;
+    }
+
     return [
       {
         id: 'msg-welcome',
         role: 'assistant',
-        content: `Assalam-o-Alaikum **${user?.full_name?.split(' ')[0] || 'Employee'}**! I am **StockSense Copilot**, your real-time inventory assistant for Nowshera Shopping Mall.\n\nYou can query product availability, check low stock items, review today's movements, or prepare stock change requests. How can I assist you today?`,
+        content: welcome,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
     ];
@@ -89,20 +98,21 @@ export const AssistantPage: React.FC<AssistantPageProps> = ({ onRefreshInventory
       );
 
       // Prevent stale responses from earlier questions
-if (activeRequestIdRef.current !== reqId) return;
+      if (activeRequestIdRef.current !== reqId) return;
 
-// Store the real pending stock-change request ID
-if (
-  response.confirmationRequest?.status === 'PENDING' &&
-  response.confirmationRequest?.id
-) {
-  setPendingRequestId(response.confirmationRequest.id);
-}
+      // Store the real pending stock-change request ID
+      if (
+        response.confirmationRequest?.status === 'PENDING' &&
+        response.confirmationRequest?.id
+      ) {
+        setPendingRequestId(response.confirmationRequest.id);
+      }
 
-const aiMsg: ChatMessage = {
+      const aiMsg: ChatMessage = {
         id: 'msg-ai-' + Date.now(),
         role: 'assistant',
         content: response.message,
+        source: response.source,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         confirmationRequest: response.confirmationRequest,
         productCard: response.productCard,
@@ -115,7 +125,7 @@ const aiMsg: ChatMessage = {
       const errorMsg: ChatMessage = {
         id: 'msg-err-' + Date.now(),
         role: 'assistant',
-        content: 'AI Assistant is temporarily unavailable.',
+        content: 'The assistant is temporarily unavailable. All inventory data remains secure, and you can continue managing stock directly from the main store tabs.',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         error: true
       };
@@ -135,7 +145,7 @@ const aiMsg: ChatMessage = {
       {
         id: 'msg-welcome-new',
         role: 'assistant',
-        content: `Conversation cleared. Ready for your next inventory command or question.`,
+        content: `Conversation reset. Ready for your next store inventory command or lookup.`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
     ]);
@@ -155,18 +165,21 @@ const aiMsg: ChatMessage = {
     fetchCatalog();
   }, [role]);
 
-  const SUGGESTED_QUERIES = realProducts.length > 0
+  const p1 = realProducts[0]?.name || 'Fast Charging Cable';
+  const SUGGESTED_QUERIES = role !== 'STAFF'
     ? [
-        `Do we have ${realProducts[0].name}?`,
-        `Show me stock of ${realProducts[0].sku}`,
-        'What products are low in stock?',
-        "What are today's stock movements?",
-        ...(realProducts.length > 1 ? [`Do we have ${realProducts[1].name}?`] : [])
+        'Which item sold the most this week?',
+        `What is the cost price and margin of ${p1}?`,
+        `Stock in 25 ${p1}`,
+        'Show recent stock movements',
+        'What products are low in stock?'
       ]
     : [
-        'What products are in the database?',
-        'What products are low in stock?',
-        "What are today's stock movements?"
+        'Which item sold the most this week?',
+        `Check stock of ${p1}`,
+        `Stock in 20 ${p1}`,
+        `Stock out 5 ${p1}`,
+        'What products are low in stock?'
       ];
 
   return (
@@ -179,15 +192,15 @@ const aiMsg: ChatMessage = {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-extrabold text-slate-900 tracking-tight">StockSense Copilot</h2>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-800">
-                {creds.hasN8n ? 'n8n + OpenRouter' : 'Resilient In-App Engine'}
+              <h2 className="text-base font-extrabold text-slate-900 tracking-tight">Mall Management Assistant</h2>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                {role === 'ADMIN' ? 'Administrator' : role === 'MANAGER' ? 'Store Manager' : 'Staff Access'}
               </span>
             </div>
             <div className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
-              <span>Grounding: Nowshera Shopping Mall</span>
+              <span>Nowshera Shopping Mall</span>
               <span>•</span>
-              <span className="text-emerald-600 font-medium">Zero Hallucination Mode</span>
+              <span className="text-emerald-600 font-medium">Real-Time Store Inventory</span>
             </div>
           </div>
         </div>
@@ -267,6 +280,9 @@ const aiMsg: ChatMessage = {
                       // Return that id with confirmed msg to update that stock
                       await handleSend("Confirmed", reqId);
                     }}
+                    onCancel={async (reqId) => {
+                      await handleSend("Cancel", reqId);
+                    }}
                     onSuccess={async () => {
                       try {
                         const prods = await getProducts(role);
@@ -282,11 +298,16 @@ const aiMsg: ChatMessage = {
 
                 {/* Timestamp */}
                 <div
-                  className={`mt-1.5 text-[10px] font-mono ${
-                    isUser ? 'text-slate-400 text-right' : 'text-slate-500'
+                  className={`mt-1.5 text-[10px] font-mono flex items-center gap-2 ${
+                    isUser ? 'text-slate-400 justify-end' : 'text-slate-500 justify-between'
                   }`}
                 >
-                  {msg.timestamp}
+                  {!isUser && msg.source === 'n8n' && (
+                    <span className="inline-flex items-center gap-1 text-[9px] font-bold text-teal-700 bg-teal-50 border border-teal-200 px-1.5 py-0.5 rounded-md">
+                      ⚡ n8n Workflow
+                    </span>
+                  )}
+                  <span>{msg.timestamp}</span>
                 </div>
               </div>
             </div>

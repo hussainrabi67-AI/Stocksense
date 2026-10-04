@@ -100,6 +100,7 @@ function MainApp() {
       case '/dashboard':
         return <DashboardPage onNavigate={navigate} />;
       case '/products':
+      case '/stock-items':
         return <ProductsPage />;
       case '/inventory':
         return (

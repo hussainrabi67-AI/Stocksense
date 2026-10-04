@@ -129,6 +129,7 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
+  source?: 'supabase' | 'n8n';
   confirmationRequest?: StockChangeRequest;
   productCard?: Partial<Product>;
   error?: boolean;

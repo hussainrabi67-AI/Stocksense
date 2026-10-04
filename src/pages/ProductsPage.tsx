@@ -14,11 +14,13 @@ import {
   X,
   Building2,
   FolderPlus,
-  Truck
+  Truck,
+  Trash2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Badge } from '../components/common/Badge';
-import { getProducts, getCategories, getSuppliers, createProduct, updateProductPrices, createCategory, createSupplier } from '../lib/api';
+import { ConfirmationModal } from '../components/common/ConfirmationModal';
+import { getProducts, getCategories, getSuppliers, createProduct, updateProductPrices, createCategory, createSupplier, deleteProduct } from '../lib/api';
 import { Product, Category, Supplier, StockStatus } from '../types/inventory';
 
 export const ProductsPage: React.FC = () => {
@@ -41,6 +43,8 @@ export const ProductsPage: React.FC = () => {
   const [createSupplierModalOpen, setCreateSupplierModalOpen] = useState(false);
   const [editPriceModalProduct, setEditPriceModalProduct] = useState<Product | null>(null);
   const [viewProductDetails, setViewProductDetails] = useState<Product | null>(null);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Create Product Form State
   const [newSku, setNewSku] = useState('');
@@ -208,6 +212,20 @@ export const ProductsPage: React.FC = () => {
       alert(err.message || 'Price update failed');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteProduct = async () => {
+    if (!productToDelete) return;
+    setIsDeleting(true);
+    try {
+      await deleteProduct(productToDelete.id);
+      setProductToDelete(null);
+      await loadData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to remove stock item');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -469,17 +487,27 @@ export const ProductsPage: React.FC = () => {
                           </button>
 
                           {(role === 'MANAGER' || role === 'ADMIN') && (
-                            <button
-                              onClick={() => {
-                                setEditPriceModalProduct(p);
-                                setEditSellingPrice(p.selling_price);
-                                setEditCostPrice(p.cost_price || 0);
-                              }}
-                              className="p-1.5 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg transition-colors"
-                              title="Update prices"
-                            >
-                              <Edit3 className="w-4 h-4" />
-                            </button>
+                            <>
+                              <button
+                                onClick={() => {
+                                  setEditPriceModalProduct(p);
+                                  setEditSellingPrice(p.selling_price);
+                                  setEditCostPrice(p.cost_price || 0);
+                                }}
+                                className="p-1.5 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg transition-colors"
+                                title="Update prices"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+
+                              <button
+                                onClick={() => setProductToDelete(p)}
+                                className="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition-colors"
+                                title="Remove stock item"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </>
                           )}
                         </div>
                       </td>
@@ -999,7 +1027,23 @@ export const ProductsPage: React.FC = () => {
               )}
             </div>
 
-            <div className="mt-6 pt-3 border-t border-slate-100 flex justify-end">
+            <div className="mt-6 pt-3 border-t border-slate-100 flex items-center justify-between">
+              {(role === 'MANAGER' || role === 'ADMIN') ? (
+                <button
+                  onClick={() => {
+                    const target = viewProductDetails;
+                    setViewProductDetails(null);
+                    setProductToDelete(target);
+                  }}
+                  className="px-3.5 py-2 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg flex items-center gap-1.5 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Remove Stock Item</span>
+                </button>
+              ) : (
+                <div />
+              )}
+
               <button
                 onClick={() => setViewProductDetails(null)}
                 className="px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg"
@@ -1010,6 +1054,19 @@ export const ProductsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* REMOVE / DELETE PRODUCT CONFIRMATION MODAL */}
+      <ConfirmationModal
+        isOpen={Boolean(productToDelete)}
+        title={`Remove "${productToDelete?.name}"?`}
+        description={`Are you sure you want to remove this stock item (${productToDelete?.sku}) from the store catalog? This action will remove the product and record any remaining stock deduction in the movement history.`}
+        confirmLabel="Remove Item"
+        cancelLabel="Keep Item"
+        confirmVariant="danger"
+        isLoading={isDeleting}
+        onConfirm={handleDeleteProduct}
+        onCancel={() => setProductToDelete(null)}
+      />
     </div>
   );
 };

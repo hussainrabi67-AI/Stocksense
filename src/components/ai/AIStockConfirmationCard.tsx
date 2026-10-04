@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { Check, X, Clock, AlertCircle, ShieldCheck } from 'lucide-react';
 import { StockChangeRequest, UserRole } from '../../types/inventory';
 import { confirmStockChangeViaN8n, cancelStockChangeViaN8n } from '../../lib/ai';
+import { confirmStockChangeRequest } from '../../lib/api';
 
 interface AIStockConfirmationCardProps {
   request: StockChangeRequest;
   user?: { id: string; name: string; role: UserRole };
   onConfirm?: (requestId: string) => Promise<void>;
+  onCancel?: (requestId: string) => Promise<void>;
   onSuccess?: () => void;
   onCancelled?: () => void;
 }
@@ -15,6 +17,7 @@ export const AIStockConfirmationCard: React.FC<AIStockConfirmationCardProps> = (
   request,
   user,
   onConfirm,
+  onCancel,
   onSuccess,
   onCancelled
 }) => {
@@ -64,7 +67,11 @@ export const AIStockConfirmationCard: React.FC<AIStockConfirmationCardProps> = (
 
     try {
       // Clears the pending request without changing inventory
-      await cancelStockChangeViaN8n(request.id, fallbackUser);
+      if (onCancel) {
+        await onCancel(request.id);
+      } else {
+        await cancelStockChangeViaN8n(request.id, fallbackUser);
+      }
       setStatus('CANCELLED');
       if (onCancelled) onCancelled();
     } catch (err: any) {

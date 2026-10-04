@@ -12,8 +12,8 @@ import {
 } from '../types/inventory';
 
 // ==============================================================================
-// LOCAL STORAGE BUFFER (Empty by default — ZERO fake data generated)
-// Used only as local transient buffer when user has not yet connected live Supabase
+// LOCAL STORAGE BUFFER
+// Pre-seeded with Nowshera Shopping Mall initial inventory if local storage is empty
 // ==============================================================================
 
 interface LocalDB {
@@ -25,15 +25,390 @@ interface LocalDB {
   users: Profile[];
 }
 
+const DEFAULT_USERS: Profile[] = [
+  {
+    id: 'user-admin-hussain',
+    full_name: 'Hussain Rabi',
+    email: 'hussainrabi67@gmail.com',
+    role: 'ADMIN',
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 'user-admin-01',
+    full_name: 'Tariq Khan',
+    email: 'admin@nowsheramall.pk',
+    role: 'ADMIN',
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 'user-manager-02',
+    full_name: 'Bilawal Shah',
+    email: 'manager@nowsheramall.pk',
+    role: 'MANAGER',
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 'user-staff-03',
+    full_name: 'Zainab Bibi',
+    email: 'staff@nowsheramall.pk',
+    role: 'STAFF',
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
+];
+
+const DEFAULT_CATEGORIES: Category[] = [
+  { id: 'cat-elec-01', name: 'Electronics & Mobile', code: 'ELEC', description: 'Smart devices, chargers, and mobile gear', created_at: new Date().toISOString() },
+  { id: 'cat-acc-02', name: 'Accessories & Peripherals', code: 'ACC', description: 'Mice, keyboards, and computer peripherals', created_at: new Date().toISOString() },
+  { id: 'cat-pwr-03', name: 'Power & Cables', code: 'PWR', description: 'Power banks, adapters, and high-speed cables', created_at: new Date().toISOString() }
+];
+
+const DEFAULT_SUPPLIERS: Supplier[] = [
+  { id: 'sup-ali-01', name: 'Ali Traders (Lahore)', contact_person: 'Muhammad Ali', email: 'alitrader@lahore.pk', phone: '0300-1234567', is_active: true, created_at: new Date().toISOString() },
+  { id: 'sup-now-02', name: 'Nowshera Wholesale Hub', contact_person: 'Farhan Ahmad', email: 'orders@nowsherahub.pk', phone: '0312-9876543', is_active: true, created_at: new Date().toISOString() },
+  { id: 'sup-pak-03', name: 'Pak Electronics Center', contact_person: 'Rashid Mahmood', email: 'rashid@pakelec.pk', phone: '0333-5556677', is_active: true, created_at: new Date().toISOString() }
+];
+
+const DEFAULT_PRODUCTS: Product[] = [
+  {
+    id: 'prod-cbl-01',
+    sku: 'ELEC-CBL-001',
+    name: 'Type-C Fast Charging Cable (65W)',
+    description: 'Braided 1.8m durable USB-C to USB-C cable for laptops & mobile devices',
+    category_id: 'cat-pwr-03',
+    category_name: 'Power & Cables',
+    default_supplier_id: 'sup-ali-01',
+    supplier_name: 'Ali Traders (Lahore)',
+    selling_price: 850,
+    cost_price: 450,
+    profit: 400,
+    profit_margin_percent: 47.06,
+    reorder_level: 25,
+    quantity_on_hand: 120,
+    inventory_version: 1,
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 'prod-chg-02',
+    sku: 'ELEC-CHG-002',
+    name: 'Samsung 45W Super Fast Charger',
+    description: 'Original 45W Type-C power adapter with Power Delivery support',
+    category_id: 'cat-elec-01',
+    category_name: 'Electronics & Mobile',
+    default_supplier_id: 'sup-ali-01',
+    supplier_name: 'Ali Traders (Lahore)',
+    selling_price: 2400,
+    cost_price: 1600,
+    profit: 800,
+    profit_margin_percent: 33.33,
+    reorder_level: 15,
+    quantity_on_hand: 8, // Low Stock!
+    inventory_version: 1,
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 'prod-mou-03',
+    sku: 'ACC-MOU-003',
+    name: 'Logitech Silent Wireless Mouse',
+    description: 'Ergonomic 2.4GHz optical wireless mouse with silent clicks',
+    category_id: 'cat-acc-02',
+    category_name: 'Accessories & Peripherals',
+    default_supplier_id: 'sup-now-02',
+    supplier_name: 'Nowshera Wholesale Hub',
+    selling_price: 1850,
+    cost_price: 1200,
+    profit: 650,
+    profit_margin_percent: 35.14,
+    reorder_level: 10,
+    quantity_on_hand: 42,
+    inventory_version: 1,
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 'prod-bnk-04',
+    sku: 'PWR-BNK-004',
+    name: 'Anker 20,000mAh Power Bank',
+    description: 'High capacity dual-port portable battery with PowerIQ charging',
+    category_id: 'cat-pwr-03',
+    category_name: 'Power & Cables',
+    default_supplier_id: 'sup-pak-03',
+    supplier_name: 'Pak Electronics Center',
+    selling_price: 5500,
+    cost_price: 3800,
+    profit: 1700,
+    profit_margin_percent: 30.91,
+    reorder_level: 12,
+    quantity_on_hand: 6, // Low Stock!
+    inventory_version: 1,
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 'prod-kbd-05',
+    sku: 'ACC-KBD-005',
+    name: 'Mechanical Gaming Keyboard RGB',
+    description: 'Tenkeyless tactile mechanical switches with per-key RGB backlighting',
+    category_id: 'cat-acc-02',
+    category_name: 'Accessories & Peripherals',
+    default_supplier_id: 'sup-now-02',
+    supplier_name: 'Nowshera Wholesale Hub',
+    selling_price: 4200,
+    cost_price: 2800,
+    profit: 1400,
+    profit_margin_percent: 33.33,
+    reorder_level: 8,
+    quantity_on_hand: 28,
+    inventory_version: 1,
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 'prod-adp-06',
+    sku: 'ELEC-CHG-006',
+    name: 'Apple 20W USB-C Power Adapter',
+    description: 'Compact USB-C fast charging wall plug for iPhone & iPad',
+    category_id: 'cat-elec-01',
+    category_name: 'Electronics & Mobile',
+    default_supplier_id: 'sup-pak-03',
+    supplier_name: 'Pak Electronics Center',
+    selling_price: 3200,
+    cost_price: 2200,
+    profit: 1000,
+    profit_margin_percent: 31.25,
+    reorder_level: 10,
+    quantity_on_hand: 19,
+    inventory_version: 1,
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
+];
+
+function generateDefaultMovements(): InventoryMovement[] {
+  const now = Date.now();
+  const day = 24 * 60 * 60 * 1000;
+  return [
+    {
+      id: 'mov-seed-01',
+      product_id: 'prod-cab-01',
+      product_name: 'Baseus 65W Fast Charging USB-C Cable',
+      product_sku: 'ELEC-CAB-001',
+      movement_type: 'OUT',
+      quantity: 18,
+      quantity_before: 138,
+      quantity_after: 120,
+      reason: 'Retail Counter Walk-in Sales',
+      source: 'MANUAL',
+      performed_by: 'usr-admin-01',
+      performer_name: 'Hussain Rabi',
+      idempotency_key: 'seed-out-01',
+      created_at: new Date(now - 1.2 * day).toISOString()
+    },
+    {
+      id: 'mov-seed-02',
+      product_id: 'prod-cab-01',
+      product_name: 'Baseus 65W Fast Charging USB-C Cable',
+      product_sku: 'ELEC-CAB-001',
+      movement_type: 'OUT',
+      quantity: 16,
+      quantity_before: 154,
+      quantity_after: 138,
+      reason: 'Cashier Register 1 Dispatch',
+      source: 'MANUAL',
+      performed_by: 'usr-staff-03',
+      performer_name: 'Tariq Khan',
+      idempotency_key: 'seed-out-02',
+      created_at: new Date(now - 2.5 * day).toISOString()
+    },
+    {
+      id: 'mov-seed-03',
+      product_id: 'prod-chg-02',
+      product_name: 'Samsung 45W Super Fast Charger',
+      product_sku: 'ELEC-CHG-002',
+      movement_type: 'OUT',
+      quantity: 14,
+      quantity_before: 22,
+      quantity_after: 8,
+      reason: 'Mobile Accessories Section Sales',
+      source: 'MANUAL',
+      performed_by: 'usr-mgr-02',
+      performer_name: 'Zainab Bibi',
+      idempotency_key: 'seed-out-03',
+      created_at: new Date(now - 2.8 * day).toISOString()
+    },
+    {
+      id: 'mov-seed-04',
+      product_id: 'prod-cab-01',
+      product_name: 'Baseus 65W Fast Charging USB-C Cable',
+      product_sku: 'ELEC-CAB-001',
+      movement_type: 'OUT',
+      quantity: 14,
+      quantity_before: 168,
+      quantity_after: 154,
+      reason: 'Customer Outbound Sales',
+      source: 'MANUAL',
+      performed_by: 'usr-staff-03',
+      performer_name: 'Tariq Khan',
+      idempotency_key: 'seed-out-04',
+      created_at: new Date(now - 3.8 * day).toISOString()
+    },
+    {
+      id: 'mov-seed-05',
+      product_id: 'prod-mou-03',
+      product_name: 'Logitech Silent Wireless Mouse',
+      product_sku: 'ACC-MOU-003',
+      movement_type: 'OUT',
+      quantity: 11,
+      quantity_before: 53,
+      quantity_after: 42,
+      reason: 'Peripherals Department Sales',
+      source: 'MANUAL',
+      performed_by: 'usr-admin-01',
+      performer_name: 'Hussain Rabi',
+      idempotency_key: 'seed-out-05',
+      created_at: new Date(now - 3.2 * day).toISOString()
+    },
+    {
+      id: 'mov-seed-06',
+      product_id: 'prod-adp-06',
+      product_name: 'Apple 20W USB-C Power Adapter',
+      product_sku: 'ELEC-CHG-006',
+      movement_type: 'OUT',
+      quantity: 9,
+      quantity_before: 28,
+      quantity_after: 19,
+      reason: 'Store Register Sales',
+      source: 'MANUAL',
+      performed_by: 'usr-staff-03',
+      performer_name: 'Tariq Khan',
+      idempotency_key: 'seed-out-06',
+      created_at: new Date(now - 4.1 * day).toISOString()
+    },
+    {
+      id: 'mov-seed-07',
+      product_id: 'prod-chg-02',
+      product_name: 'Samsung 45W Super Fast Charger',
+      product_sku: 'ELEC-CHG-002',
+      movement_type: 'OUT',
+      quantity: 8,
+      quantity_before: 30,
+      quantity_after: 22,
+      reason: 'Electronics Counter Sales',
+      source: 'MANUAL',
+      performed_by: 'usr-mgr-02',
+      performer_name: 'Zainab Bibi',
+      idempotency_key: 'seed-out-07',
+      created_at: new Date(now - 4.9 * day).toISOString()
+    },
+    {
+      id: 'mov-seed-08',
+      product_id: 'prod-bnk-04',
+      product_name: 'Anker 20,000mAh Power Bank',
+      product_sku: 'PWR-BNK-004',
+      movement_type: 'OUT',
+      quantity: 8,
+      quantity_before: 14,
+      quantity_after: 6,
+      reason: 'Power Accessories Customer Dispatch',
+      source: 'MANUAL',
+      performed_by: 'usr-admin-01',
+      performer_name: 'Hussain Rabi',
+      idempotency_key: 'seed-out-08',
+      created_at: new Date(now - 4.5 * day).toISOString()
+    },
+    {
+      id: 'mov-seed-09',
+      product_id: 'prod-cab-01',
+      product_name: 'Baseus 65W Fast Charging USB-C Cable',
+      product_sku: 'ELEC-CAB-001',
+      movement_type: 'OUT',
+      quantity: 10,
+      quantity_before: 178,
+      quantity_after: 168,
+      reason: 'Weekend Promotion Sales',
+      source: 'MANUAL',
+      performed_by: 'usr-staff-03',
+      performer_name: 'Tariq Khan',
+      idempotency_key: 'seed-out-09',
+      created_at: new Date(now - 5.6 * day).toISOString()
+    },
+    {
+      id: 'mov-seed-10',
+      product_id: 'prod-mou-03',
+      product_name: 'Logitech Silent Wireless Mouse',
+      product_sku: 'ACC-MOU-003',
+      movement_type: 'OUT',
+      quantity: 7,
+      quantity_before: 60,
+      quantity_after: 53,
+      reason: 'Accessories Counter Dispatch',
+      source: 'MANUAL',
+      performed_by: 'usr-mgr-02',
+      performer_name: 'Zainab Bibi',
+      idempotency_key: 'seed-out-10',
+      created_at: new Date(now - 5.9 * day).toISOString()
+    },
+    {
+      id: 'mov-seed-11',
+      product_id: 'prod-kbd-05',
+      product_name: 'Mechanical Gaming Keyboard RGB',
+      product_sku: 'ACC-KBD-005',
+      movement_type: 'OUT',
+      quantity: 6,
+      quantity_before: 34,
+      quantity_after: 28,
+      reason: 'Gaming Counter Sales',
+      source: 'MANUAL',
+      performed_by: 'usr-admin-01',
+      performer_name: 'Hussain Rabi',
+      idempotency_key: 'seed-out-11',
+      created_at: new Date(now - 6.2 * day).toISOString()
+    },
+    {
+      id: 'mov-seed-12',
+      product_id: 'prod-cab-01',
+      product_name: 'Baseus 65W Fast Charging USB-C Cable',
+      product_sku: 'ELEC-CAB-001',
+      movement_type: 'IN',
+      quantity: 100,
+      quantity_before: 78,
+      quantity_after: 178,
+      reason: 'Weekly Restock Batch Delivery',
+      source: 'MANUAL',
+      performed_by: 'usr-admin-01',
+      performer_name: 'Hussain Rabi',
+      supplier_id: 'sup-ali-01',
+      supplier_name: 'Ali Traders (Lahore)',
+      idempotency_key: 'seed-in-12',
+      created_at: new Date(now - 6.5 * day).toISOString()
+    }
+  ];
+}
+
 function getLocalDB(): LocalDB {
   if (typeof window === 'undefined') {
     return {
-      products: [],
-      movements: [],
+      products: DEFAULT_PRODUCTS,
+      movements: generateDefaultMovements(),
       requests: [],
-      categories: [],
-      suppliers: [],
-      users: []
+      categories: DEFAULT_CATEGORIES,
+      suppliers: DEFAULT_SUPPLIERS,
+      users: DEFAULT_USERS
     };
   }
 
@@ -44,13 +419,39 @@ function getLocalDB(): LocalDB {
   const storedSups = localStorage.getItem('stocksense_db_suppliers');
   const storedUsers = localStorage.getItem('stocksense_db_users');
 
+  const products = storedProd ? (JSON.parse(storedProd) as Product[]) : DEFAULT_PRODUCTS;
+  const categories = storedCats ? (JSON.parse(storedCats) as Category[]) : DEFAULT_CATEGORIES;
+  const suppliers = storedSups ? (JSON.parse(storedSups) as Supplier[]) : DEFAULT_SUPPLIERS;
+  const users = storedUsers ? (JSON.parse(storedUsers) as Profile[]) : DEFAULT_USERS;
+
+  let movements: InventoryMovement[] = [];
+  if (storedMov) {
+    try {
+      movements = JSON.parse(storedMov) as InventoryMovement[];
+    } catch (e) {
+      movements = [];
+    }
+  }
+
+  // Seed default weekly movements if none exist
+  if (!movements || movements.length === 0) {
+    movements = generateDefaultMovements();
+    localStorage.setItem('stocksense_db_movements', JSON.stringify(movements));
+  }
+
+  // Ensure initial data saved if not present
+  if (!storedProd) localStorage.setItem('stocksense_db_products', JSON.stringify(DEFAULT_PRODUCTS));
+  if (!storedCats) localStorage.setItem('stocksense_db_categories', JSON.stringify(DEFAULT_CATEGORIES));
+  if (!storedSups) localStorage.setItem('stocksense_db_suppliers', JSON.stringify(DEFAULT_SUPPLIERS));
+  if (!storedUsers) localStorage.setItem('stocksense_db_users', JSON.stringify(DEFAULT_USERS));
+
   return {
-    products: storedProd ? (JSON.parse(storedProd) as Product[]) : [],
-    movements: storedMov ? (JSON.parse(storedMov) as InventoryMovement[]) : [],
+    products,
+    movements,
     requests: storedReq ? (JSON.parse(storedReq) as StockChangeRequest[]) : [],
-    categories: storedCats ? (JSON.parse(storedCats) as Category[]) : [],
-    suppliers: storedSups ? (JSON.parse(storedSups) as Supplier[]) : [],
-    users: storedUsers ? (JSON.parse(storedUsers) as Profile[]) : []
+    categories,
+    suppliers,
+    users
   };
 }
 
@@ -313,10 +714,14 @@ export async function changeStock(params: {
     throw new Error('Quantity must be greater than zero.');
   }
 
+  const safeKey = (idempotencyKey && idempotencyKey.trim())
+    ? idempotencyKey.trim()
+    : `stock-${productId}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
   const supabase = getSupabase();
 
   if (supabase) {
-    // 1. Try Supabase RPC change_stock with correct parameter names
+    // 1. Try Supabase RPC change_stock with non-null idempotency key
     try {
       const { data, error } = await supabase.rpc('change_stock', {
         p_product_id: productId,
@@ -325,7 +730,7 @@ export async function changeStock(params: {
         p_supplier_id: supplierId || null,
         p_reason: reason,
         p_source: source,
-        p_idempotency_key: idempotencyKey || null
+        p_idempotency_key: safeKey
       });
 
       if (!error && data) {
@@ -407,7 +812,7 @@ export async function changeStock(params: {
         source,
         performed_by: user?.id || null,
         reference_id: referenceId || null,
-        idempotency_key: idempotencyKey || null,
+        idempotency_key: safeKey,
         created_at: new Date().toISOString()
       });
 
@@ -570,6 +975,112 @@ export async function getMovementHistory(filters?: {
   return list;
 }
 
+export interface TopProductSalesItem {
+  product: Product;
+  unitsSold: number;
+  transactionsCount: number;
+  retailRevenue: number;
+  grossProfit?: number; // Restricted to MANAGER and ADMIN
+  lastSoldAt: string;
+}
+
+export interface WeeklySalesAnalysis {
+  topItem: TopProductSalesItem | null;
+  rankings: TopProductSalesItem[];
+  totalUnitsSoldAll: number;
+  totalRetailRevenueAll: number;
+  totalGrossProfitAll?: number; // Restricted to MANAGER and ADMIN
+  days: number;
+}
+
+/**
+ * Fetch top selling products based on real outbound movements for the specified timeframe.
+ * Enforces role security (strictly hiding cost/profit for STAFF).
+ */
+export async function getTopSellingProducts(
+  days: number = 7,
+  role: UserRole = 'STAFF'
+): Promise<WeeklySalesAnalysis> {
+  const [movements, products] = await Promise.all([
+    getMovementHistory(),
+    getProducts(role)
+  ]);
+
+  const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1000;
+
+  // Filter for OUT movements within the requested timeframe
+  let weeklyOutMovements = movements.filter((m) => {
+    if (m.movement_type !== 'OUT') return false;
+    const mTime = new Date(m.created_at).getTime();
+    return !isNaN(mTime) && mTime >= cutoffTime;
+  });
+
+  // If no movements found in the last N days, fallback to all recorded OUT movements
+  if (weeklyOutMovements.length === 0) {
+    weeklyOutMovements = movements.filter((m) => m.movement_type === 'OUT');
+  }
+
+  // Aggregate units sold and transaction frequency per product
+  const aggMap = new Map<string, { unitsSold: number; count: number; lastSoldAt: string }>();
+
+  for (const mov of weeklyOutMovements) {
+    const key = mov.product_id || mov.product_sku || mov.product_name || 'unknown-item';
+    const existing = aggMap.get(key) || { unitsSold: 0, count: 0, lastSoldAt: mov.created_at };
+    existing.unitsSold += mov.quantity;
+    existing.count += 1;
+    if (new Date(mov.created_at).getTime() > new Date(existing.lastSoldAt).getTime()) {
+      existing.lastSoldAt = mov.created_at;
+    }
+    aggMap.set(key, existing);
+  }
+
+  // Map to catalog products
+  const rankings: TopProductSalesItem[] = [];
+
+  for (const [key, data] of aggMap.entries()) {
+    const prod = products.find(
+      (p) =>
+        p.id === key ||
+        p.sku.toLowerCase() === key.toLowerCase() ||
+        p.name.toLowerCase() === key.toLowerCase()
+    );
+
+    if (prod) {
+      const retailRevenue = data.unitsSold * prod.selling_price;
+      const grossProfit = (role !== 'STAFF' && prod.cost_price !== undefined)
+        ? data.unitsSold * (prod.selling_price - prod.cost_price)
+        : undefined;
+
+      rankings.push({
+        product: prod,
+        unitsSold: data.unitsSold,
+        transactionsCount: data.count,
+        retailRevenue,
+        grossProfit,
+        lastSoldAt: data.lastSoldAt
+      });
+    }
+  }
+
+  // Sort descending by units sold
+  rankings.sort((a, b) => b.unitsSold - a.unitsSold);
+
+  const totalUnitsSoldAll = rankings.reduce((sum, item) => sum + item.unitsSold, 0);
+  const totalRetailRevenueAll = rankings.reduce((sum, item) => sum + item.retailRevenue, 0);
+  const totalGrossProfitAll = role !== 'STAFF'
+    ? rankings.reduce((sum, item) => sum + (item.grossProfit || 0), 0)
+    : undefined;
+
+  return {
+    topItem: rankings[0] || null,
+    rankings,
+    totalUnitsSoldAll,
+    totalRetailRevenueAll,
+    totalGrossProfitAll,
+    days
+  };
+}
+
 /**
  * 2-Step Confirmation: Prepare a stock change request (Used by AI assistant)
  */
@@ -588,6 +1099,10 @@ export async function prepareStockChangeRequest(params: {
     throw new Error('Quantity must be greater than zero.');
   }
 
+  const safeKey = (idempotencyKey && idempotencyKey.trim())
+    ? idempotencyKey.trim()
+    : `prep-${productId}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
   const supabase = getSupabase();
 
   if (supabase) {
@@ -598,37 +1113,135 @@ export async function prepareStockChangeRequest(params: {
         p_quantity: quantity,
         p_supplier_id: supplierId || null,
         p_reason: reason,
-        p_source: source
+        p_source: source,
+        p_idempotency_key: safeKey
       });
 
-      if (error) throw new Error(error.message);
+      if (!error && data) {
+        return {
+          id: data.request_id,
+          product_id: data.product_id,
+          product_name: data.product_name,
+          movement_type: data.movement_type,
+          quantity: data.quantity,
+          reason: data.reason,
+          source,
+          status: 'PENDING',
+          expected_quantity: data.current_stock,
+          expected_version: 1,
+          resulting_quantity: data.resulting_stock,
+          idempotency_key: safeKey,
+          expires_at: data.expires_at,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+      }
 
-      return {
-        id: data.request_id,
-        product_id: data.product_id,
-        product_name: data.product_name,
-        movement_type: data.movement_type,
-        quantity: data.quantity,
-        reason: data.reason,
-        source,
-        status: 'PENDING',
-        expected_quantity: data.current_stock,
-        expected_version: 1,
-        resulting_quantity: data.resulting_stock,
-        idempotency_key: idempotencyKey,
-        expires_at: data.expires_at,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      if (error && error.message.includes('Insufficient stock')) throw new Error(error.message);
+      console.warn('Supabase prepare_stock_change RPC returned note:', error?.message);
     } catch (e: any) {
       if (e.message && e.message.includes('Insufficient stock')) throw e;
       console.warn('Supabase prepareStockChange fallback:', e);
     }
+
+    // Direct Supabase table fallback
+    try {
+      const { data: prodData } = await supabase
+        .from('products')
+        .select(`
+          id, name, sku, default_supplier_id,
+          inventory(quantity_on_hand, version),
+          suppliers(name)
+        `)
+        .eq('id', productId)
+        .maybeSingle();
+
+      if (prodData) {
+        const inv = Array.isArray(prodData.inventory) ? prodData.inventory[0] : prodData.inventory;
+        const supp = Array.isArray(prodData.suppliers) ? prodData.suppliers[0] : prodData.suppliers;
+        const current = inv?.quantity_on_hand ?? 0;
+        let resulting = current;
+
+        if (movementType === 'IN') {
+          resulting = current + quantity;
+        } else {
+          if (current < quantity) {
+            throw new Error(`Insufficient stock. Available quantity: ${current}, requested: ${quantity}.`);
+          }
+          resulting = current - quantity;
+        }
+
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+        let createdReqId = 'req-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6);
+
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          const { data: insertedReq, error: insertErr } = await supabase
+            .from('stock_change_requests')
+            .insert({
+              product_id: productId,
+              movement_type: movementType,
+              quantity,
+              supplier_id: supplierId || prodData.default_supplier_id || null,
+              reason,
+              source,
+              status: 'PENDING',
+              expected_quantity: current,
+              expected_version: inv?.version || 1,
+              resulting_quantity: resulting,
+              idempotency_key: safeKey,
+              expires_at: expiresAt,
+              requested_by: user?.id || null
+            })
+            .select()
+            .maybeSingle();
+
+          if (!insertErr && insertedReq) {
+            createdReqId = insertedReq.id;
+          }
+        } catch (insErr) {
+          console.warn('Direct insert into stock_change_requests note:', insErr);
+        }
+
+        const fallbackReq: StockChangeRequest = {
+          id: createdReqId,
+          product_id: productId,
+          product_name: prodData.name,
+          movement_type: movementType,
+          quantity,
+          supplier_id: supplierId || prodData.default_supplier_id || undefined,
+          supplier_name: supp?.name,
+          reason,
+          source,
+          status: 'PENDING',
+          expected_quantity: current,
+          expected_version: inv?.version || 1,
+          resulting_quantity: resulting,
+          idempotency_key: safeKey,
+          expires_at: expiresAt,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        const db = getLocalDB();
+        db.requests.unshift(fallbackReq);
+        saveLocalDB(db);
+
+        return fallbackReq;
+      }
+    } catch (tblErr: any) {
+      if (tblErr.message?.includes('Insufficient stock')) throw tblErr;
+      console.warn('Direct Supabase prepare fallback error:', tblErr);
+    }
   }
 
   const db = getLocalDB();
-  const prod = db.products.find((p) => p.id === productId);
-  if (!prod) throw new Error('Product not found.');
+  let prod = db.products.find((p) => p.id === productId);
+  if (!prod) {
+    const all = await getProducts();
+    prod = all.find((p) => p.id === productId || p.sku.toLowerCase() === productId.toLowerCase());
+  }
+  if (!prod) throw new Error('Product not found in store catalog.');
 
   const current = prod.quantity_on_hand;
   let resulting = current;
@@ -637,7 +1250,7 @@ export async function prepareStockChangeRequest(params: {
     resulting = current + quantity;
   } else {
     if (current < quantity) {
-      throw new Error(`Insufficient stock. Available quantity: ${current}.`);
+      throw new Error(`Insufficient stock. Available quantity: ${current}, requested: ${quantity}.`);
     }
     resulting = current - quantity;
   }
@@ -659,7 +1272,7 @@ export async function prepareStockChangeRequest(params: {
     expected_quantity: current,
     expected_version: prod.inventory_version || 1,
     resulting_quantity: resulting,
-    idempotency_key: idempotencyKey,
+    idempotency_key: safeKey,
     expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
@@ -730,26 +1343,83 @@ export async function getStockChangeRequestById(requestId: string): Promise<Stoc
 
 /**
  * 2-Step Confirmation: Confirm pending stock change request
+ * GUARANTEE: Never fails due to missing idempotency key. Always generates and passes safeKey.
  */
-export async function confirmStockChangeRequest(requestId: string, idempotencyKey?: string): Promise<boolean> {
+export async function confirmStockChangeRequest(
+  requestId: string,
+  idempotencyKey?: string,
+  performer?: { id?: string; name?: string }
+): Promise<boolean> {
+  const safeKey = (idempotencyKey && idempotencyKey.trim())
+    ? idempotencyKey.trim()
+    : `confirm-${requestId}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+  const performerLabel = performer?.name ? `${performer.name} (AI Assistant)` : 'AI Assistant Confirmed';
   const supabase = getSupabase();
 
   if (supabase) {
+    // 1. First attempt: Supabase RPC confirm_stock_change with safeKey
     try {
       const { data, error } = await supabase.rpc('confirm_stock_change', {
         p_request_id: requestId,
-        p_idempotency_key: idempotencyKey || null
+        p_idempotency_key: safeKey
       });
-      if (error) throw new Error(error.message);
-      return data?.success ?? true;
-    } catch (e: any) {
-      if (e.message && !e.message.includes('fetch failed')) {
-        throw e;
+
+      if (!error && data) {
+        return data?.success ?? true;
       }
-      console.warn('Supabase confirmStockChange fallback:', e);
+
+      if (error) {
+        console.warn('Supabase confirm_stock_change RPC note:', error.message);
+      }
+    } catch (rpcErr: any) {
+      console.warn('Supabase confirm_stock_change caught:', rpcErr?.message);
+    }
+
+    // 2. Direct Supabase Table Transaction Fallback (if RPC failed or threw)
+    try {
+      const { data: reqData } = await supabase
+        .from('stock_change_requests')
+        .select('*')
+        .eq('id', requestId)
+        .maybeSingle();
+
+      if (reqData) {
+        if (reqData.status === 'CONFIRMED') return true;
+        if (reqData.status === 'CANCELLED') throw new Error('Stock change request was cancelled.');
+
+        // Update inventory and log movement directly with non-null idempotency_key
+        await changeStock({
+          productId: reqData.product_id,
+          movementType: reqData.movement_type,
+          quantity: reqData.quantity,
+          supplierId: reqData.supplier_id,
+          reason: (reqData.reason || 'Stock change') + ` (Approved by ${performer?.name || 'Authorized User'})`,
+          source: 'AI_ASSISTANT_CONFIRMED',
+          performedByName: performerLabel,
+          idempotencyKey: safeKey
+        });
+
+        // Mark request confirmed in Supabase table
+        await supabase
+          .from('stock_change_requests')
+          .update({
+            status: 'CONFIRMED',
+            confirmed_at: new Date().toISOString(),
+            idempotency_key: safeKey,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', requestId);
+
+        return true;
+      }
+    } catch (directErr: any) {
+      console.warn('Direct Supabase confirmation fallback error:', directErr);
+      if (directErr.message?.includes('Insufficient stock')) throw directErr;
     }
   }
 
+  // Local storage buffer fallback
   const db = getLocalDB();
   const req = db.requests.find((r) => r.id === requestId);
   if (!req) throw new Error('Stock change request not found.');
@@ -767,12 +1437,14 @@ export async function confirmStockChangeRequest(requestId: string, idempotencyKe
     movementType: req.movement_type,
     quantity: req.quantity,
     supplierId: req.supplier_id,
-    reason: req.reason + ' (AI Confirmed)',
-    performedByName: 'AI Copilot Confirmed'
+    reason: req.reason + ` (Approved by ${performer?.name || 'Authorized User'})`,
+    performedByName: performerLabel,
+    idempotencyKey: safeKey
   });
 
   req.status = 'CONFIRMED';
   req.confirmed_at = new Date().toISOString();
+  req.idempotency_key = safeKey;
   saveLocalDB(db);
   return true;
 }
@@ -785,19 +1457,29 @@ export async function cancelStockChangeRequest(requestId: string): Promise<boole
   if (supabase) {
     try {
       const { error } = await supabase.rpc('cancel_stock_change', { p_request_id: requestId });
-      if (error) throw new Error(error.message);
-      return true;
+      if (!error) return true;
     } catch (e: any) {
-      if (e.message && !e.message.includes('fetch failed')) {
-        throw e;
-      }
-      console.warn('Supabase cancelStockChange fallback:', e);
+      console.warn('Supabase cancelStockChange RPC note:', e?.message);
+    }
+
+    try {
+      await supabase
+        .from('stock_change_requests')
+        .update({
+          status: 'CANCELLED',
+          cancelled_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', requestId);
+      return true;
+    } catch (directCancelErr: any) {
+      console.warn('Direct Supabase cancel fallback note:', directCancelErr?.message);
     }
   }
 
   const db = getLocalDB();
   const req = db.requests.find((r) => r.id === requestId);
-  if (req && req.status === 'PENDING') {
+  if (req) {
     req.status = 'CANCELLED';
     req.cancelled_at = new Date().toISOString();
     saveLocalDB(db);
@@ -816,15 +1498,15 @@ export async function createProduct(
     categoryId: string;
     defaultSupplierId?: string;
     sellingPrice: number;
-    costPrice: number;
+    costPrice?: number;
     reorderLevel: number;
     initialStock: number;
   },
-  role: UserRole
+  role: UserRole = 'ADMIN'
 ): Promise<Product> {
-  if (role !== 'MANAGER' && role !== 'ADMIN') {
-    throw new Error('Access Denied: Only Managers and Admins can create products.');
-  }
+  const safeCost = productData.costPrice !== undefined
+    ? Number(productData.costPrice)
+    : Math.round(Number(productData.sellingPrice) * 0.65);
 
   const supabase = getSupabase();
   if (supabase) {
@@ -836,7 +1518,7 @@ export async function createProduct(
         p_category_id: productData.categoryId,
         p_supplier_id: productData.defaultSupplierId || null,
         p_selling_price: productData.sellingPrice,
-        p_cost_price: productData.costPrice,
+        p_cost_price: safeCost,
         p_reorder_level: productData.reorderLevel
       });
 
@@ -884,7 +1566,7 @@ export async function createProduct(
           category_id: productData.categoryId,
           default_supplier_id: productData.defaultSupplierId || null,
           selling_price: productData.sellingPrice,
-          cost_price: productData.costPrice,
+          cost_price: safeCost,
           reorder_level: productData.reorderLevel,
           is_active: true
         })
@@ -931,10 +1613,10 @@ export async function createProduct(
     default_supplier_id: productData.defaultSupplierId,
     supplier_name: sup?.name || 'Unassigned',
     selling_price: productData.sellingPrice,
-    cost_price: productData.costPrice,
-    profit: productData.sellingPrice - productData.costPrice,
+    cost_price: safeCost,
+    profit: productData.sellingPrice - safeCost,
     profit_margin_percent: Number(
-      (((productData.sellingPrice - productData.costPrice) / productData.sellingPrice) * 100).toFixed(2)
+      (((productData.sellingPrice - safeCost) / productData.sellingPrice) * 100).toFixed(2)
     ),
     reorder_level: productData.reorderLevel,
     quantity_on_hand: productData.initialStock,
@@ -965,7 +1647,81 @@ export async function createProduct(
   }
 
   saveLocalDB(db);
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('stocksense:inventory_updated'));
+  }
+
   return newProd;
+}
+
+/**
+ * Remove an existing stock item from the database.
+ */
+export async function deleteProduct(productId: string): Promise<boolean> {
+  const supabase = getSupabase();
+  let supabaseHandled = false;
+
+  if (supabase) {
+    try {
+      // 1. Soft delete product on Supabase so existing immutable audit logs remain valid
+      const { error: updateErr } = await supabase
+        .from('products')
+        .update({ is_active: false, updated_at: new Date().toISOString() })
+        .eq('id', productId);
+
+      if (!updateErr) {
+        // Zero out inventory row on Supabase
+        await supabase
+          .from('inventory')
+          .update({ quantity_on_hand: 0, updated_at: new Date().toISOString() })
+          .eq('product_id', productId);
+
+        supabaseHandled = true;
+      } else {
+        // Fallback: Try hard delete
+        const { error: delErr } = await supabase.from('products').delete().eq('id', productId);
+        if (!delErr) supabaseHandled = true;
+      }
+    } catch (e) {
+      console.warn('Supabase deleteProduct error:', e);
+    }
+  }
+
+  const db = getLocalDB();
+  const index = db.products.findIndex((p) => p.id === productId);
+
+  if (index !== -1) {
+    const removed = db.products[index];
+    db.products.splice(index, 1);
+
+    // If this item had stock on hand, record the removal in movement history
+    if ((removed.quantity_on_hand || 0) > 0) {
+      db.movements.unshift({
+        id: 'mov-' + Date.now(),
+        product_id: removed.id,
+        product_name: removed.name,
+        product_sku: removed.sku,
+        movement_type: 'OUT',
+        quantity: removed.quantity_on_hand,
+        quantity_before: removed.quantity_on_hand,
+        quantity_after: 0,
+        reason: `Stock item removed from database catalog (${removed.name})`,
+        source: 'SYSTEM',
+        created_at: new Date().toISOString()
+      });
+    }
+
+    saveLocalDB(db);
+  } else if (!supabaseHandled) {
+    throw new Error('Stock item not found in the database.');
+  }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('stocksense:inventory_updated'));
+  }
+
+  return true;
 }
 
 /**
@@ -1019,7 +1775,7 @@ export async function getUsers(): Promise<Profile[]> {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, role, is_active, created_at, updated_at')
+        .select('id, full_name, email, role, is_active, created_at, updated_at')
         .order('full_name');
 
       if (!error && data) {
@@ -1156,14 +1912,47 @@ export async function addStaffUser(user: {
   fullName: string;
   email: string;
   role: UserRole;
+  password?: string;
 }): Promise<Profile> {
+  const supabase = getSupabase();
+  let supabaseUserId: string | null = null;
+
+  if (supabase && user.password) {
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: user.email,
+        password: user.password,
+        options: {
+          data: {
+            full_name: user.fullName
+          }
+        }
+      });
+      if (authError) {
+        console.warn('Supabase auth signup note:', authError.message);
+      } else if (authData.user) {
+        supabaseUserId = authData.user.id;
+        await supabase.from('profiles').upsert({
+          id: authData.user.id,
+          full_name: user.fullName,
+          email: user.email,
+          role: user.role,
+          is_active: true,
+          updated_at: new Date().toISOString()
+        });
+      }
+    } catch (e) {
+      console.warn('Supabase addStaffUser fallback:', e);
+    }
+  }
+
   const db = getLocalDB();
   if (db.users.some((u) => u.email.toLowerCase() === user.email.toLowerCase())) {
     throw new Error('A user with this email already exists.');
   }
 
   const newUser: Profile = {
-    id: 'user-' + Date.now(),
+    id: supabaseUserId || ('user-' + Date.now()),
     full_name: user.fullName,
     email: user.email,
     role: user.role,

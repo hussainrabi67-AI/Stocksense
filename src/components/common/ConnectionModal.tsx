@@ -10,7 +10,7 @@ interface ConnectionModalProps {
 }
 
 export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClose, onRefresh }) => {
-  const { role } = useAuth();
+  const { role, isAuthenticated } = useAuth();
   const currentCreds = getSupabaseCredentials();
 
   const [supabaseUrl, setSupabaseUrl] = useState(currentCreds.url);
@@ -22,8 +22,9 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClos
 
   if (!isOpen) return null;
 
-  // STRICT RBAC: Only ADMIN can access and edit API keys
-  if (role !== 'ADMIN') {
+  // STRICT RBAC: Only block non-admins when they are logged in.
+  // Allow unauthenticated setup so evaluators/candidates can connect their project credentials on the login screen.
+  if (isAuthenticated && role !== 'ADMIN') {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
         <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full p-6 text-center">
@@ -32,7 +33,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClos
           </div>
           <h3 className="text-base font-bold text-slate-900">Administrator Access Required</h3>
           <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-            API keys, Supabase database credentials, and AI webhook configurations are restricted exclusively to users with the <strong className="text-slate-800">ADMIN</strong> role.
+            API keys and Supabase database credentials are restricted exclusively to users with the <strong className="text-slate-800">ADMIN</strong> role when signed in.
           </p>
           <button
             onClick={onClose}

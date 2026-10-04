@@ -62,7 +62,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       group: 'INVENTORY & CATALOG',
       items: [
-        { label: 'Products', path: '/products', icon: Package },
+        { label: 'Stock Items (Add/Remove)', path: '/products', icon: Package },
         { label: 'Stock Levels', path: '/inventory', icon: Layers },
         {
           label: 'Low Stock Alert',

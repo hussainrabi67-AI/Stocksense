@@ -16,7 +16,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { sendAIMessage, resetConversationId, setPendingRequestId, getPendingRequestId } from '../../lib/ai';
+import { sendAIMessage, resetConversationId, setPendingRequestId, getPendingRequestId, getHumanName } from '../../lib/ai';
 import { ChatMessage } from '../../types/inventory';
 import { AIStockConfirmationCard } from './AIStockConfirmationCard';
 import { Badge } from '../common/Badge';
@@ -31,18 +31,27 @@ export const AICopilotPopup: React.FC<AICopilotPopupProps> = ({
   onRefreshInventory
 }) => {
   const { user, role } = useAuth();
+  const humanName = getHumanName(user?.full_name, user?.email);
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [hasUnread, setHasUnread] = useState(true);
 
-  const [messages, setMessages] = useState<ChatMessage[]>(() => [
-    {
-      id: 'popup-welcome',
-      role: 'assistant',
-      content: `Hi **${user?.full_name?.split(' ')[0] || 'there'}**! 👋 I am your **StockSense Copilot**.\n\nAsk me about stock quantities, low-stock warnings, today's shipments, or reorders anytime without leaving your current screen.`,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    let welcome = `Hi ${humanName}! 👋 I am your **Mall Management Assistant**.\n\nI can help you check product availability and retail prices, or record incoming deliveries (**Stock In**) and customer sales (**Stock Out**).`;
+    if (role === 'ADMIN') {
+      welcome = `Hi ${humanName}! 👋 I am your **Mall Management Assistant** (Admin mode).\n\nYou can manage stock in/out, view financial cost prices and margins, inspect the stock audit log, or monitor reorder levels.`;
+    } else if (role === 'MANAGER') {
+      welcome = `Hi ${humanName}! 👋 I am your **Mall Management Assistant** (Manager mode).\n\nYou can manage stock in/out, analyze profit margins and inventory valuation, and monitor reorder alerts.`;
     }
-  ]);
+    return [
+      {
+        id: 'popup-welcome',
+        role: 'assistant',
+        content: welcome,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }
+    ];
+  });
 
   const [inputQuery, setInputQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -110,6 +119,7 @@ export const AICopilotPopup: React.FC<AICopilotPopupProps> = ({
         id: 'popup-ai-' + Date.now(),
         role: 'assistant',
         content: response.message,
+        source: response.source,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         confirmationRequest: response.confirmationRequest,
         productCard: response.productCard,
@@ -122,7 +132,7 @@ export const AICopilotPopup: React.FC<AICopilotPopupProps> = ({
       const errorMsg: ChatMessage = {
         id: 'popup-err-' + Date.now(),
         role: 'assistant',
-        content: 'AI Assistant is temporarily unavailable.',
+        content: 'The assistant is temporarily unavailable. All inventory records remain safe and accessible via the main tabs.',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         error: true
       };
@@ -142,18 +152,25 @@ export const AICopilotPopup: React.FC<AICopilotPopupProps> = ({
       {
         id: 'popup-reset-' + Date.now(),
         role: 'assistant',
-        content: `Chat history cleared. How can I assist you with Nowshera Mall inventory?`,
+        content: `Chat history cleared. Ready for your next inventory instruction.`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
     ]);
   };
 
-  const quickPrompts = [
-    { label: 'Low Stock Alert', text: 'Which items are low in stock right now?' },
-    { label: 'Stock In Summary', text: "How much inventory came in today?" },
-    { label: 'Inventory Count', text: 'What is the total quantity of inventory on hand?' },
-    ...(role !== 'STAFF' ? [{ label: 'Valuation', text: 'What is our total retail inventory value?' }] : [])
-  ];
+  const quickPrompts = role !== 'STAFF'
+    ? [
+        { label: 'Top Seller', text: 'Which item sold the most this week?' },
+        { label: 'Stock In', text: 'Stock in 20 units' },
+        { label: 'Profit Margins', text: 'What is our profit margin on fast charging cable?' },
+        { label: 'Low Stock Check', text: 'What products are low in stock?' }
+      ]
+    : [
+        { label: 'Top Seller', text: 'Which item sold the most this week?' },
+        { label: 'Stock In', text: 'Stock in 20 units' },
+        { label: 'Stock Out', text: 'Stock out 5 units' },
+        { label: 'Check Stock', text: 'Do we have fast charging cable?' }
+      ];
 
   return (
     <>
@@ -282,6 +299,9 @@ export const AICopilotPopup: React.FC<AICopilotPopupProps> = ({
                               // Return that id with confirmed msg to update that stock
                               await handleSend("Confirmed", reqId);
                             }}
+                            onCancel={async (reqId) => {
+                              await handleSend("Cancel", reqId);
+                            }}
                             onSuccess={() => {
                               onRefreshInventory?.();
                             }}
@@ -292,7 +312,16 @@ export const AICopilotPopup: React.FC<AICopilotPopupProps> = ({
                         </div>
                       )}
                     </div>
-                    <span className="text-[10px] text-slate-400 mt-1 px-1">{msg.timestamp}</span>
+                    <div className="flex items-center justify-between w-full px-1 mt-1 text-[10px] text-slate-400">
+                      {msg.role !== 'user' && msg.source === 'n8n' ? (
+                        <span className="text-[9px] font-bold text-teal-700 bg-teal-50 border border-teal-200 px-1.5 py-0.5 rounded-md">
+                          ⚡ n8n
+                        </span>
+                      ) : (
+                        <span />
+                      )}
+                      <span>{msg.timestamp}</span>
+                    </div>
                   </div>
                 ))}
 
