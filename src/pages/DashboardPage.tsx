@@ -55,10 +55,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     setIsLoading(true);
     try {
        const [m, low, movs, prods, cats] = await Promise.all([
-       getDashboardMetrics(role),
-       getLowStockProducts(role),
-       getMovementHistory(),
-       getProducts(role),
+       getDashboardMetrics(role).catch(() => null),
+       getLowStockProducts(role).catch(() => []),
+       getMovementHistory().catch(() => []),
+       getProducts(role).catch(() => []),
        getCategories().catch(err => {
     console.error('Categories failed:', err);
     return [];
