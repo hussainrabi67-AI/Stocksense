@@ -273,7 +273,7 @@ export async function callN8nAIWebhook(
       timestamp: new Date().toISOString()
     };
 
-    const response = await fetch(n8nUrl, {
+    const response = await fetch('/api/ai/n8n-proxy', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

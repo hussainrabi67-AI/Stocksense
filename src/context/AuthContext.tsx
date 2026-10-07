@@ -30,6 +30,17 @@ const isSuperAdminEmail = (email?: string | null, name?: string | null): boolean
   );
 };
 
+// Designated store manager check
+const isManagerEmail = (email?: string | null): boolean => {
+  if (!email) return false;
+  const cleanEmail = email.toLowerCase().trim();
+  return (
+    cleanEmail === 'shahkiran472@gmail.com' ||
+    cleanEmail.includes('shahkiran') ||
+    cleanEmail === 'manager@nowsheramall.pk'
+  );
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -60,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Query the database profile row
         let { data: profileData } = await supabase
           .from('profiles')
-          .select('id, full_name, email, role, is_active, created_at, updated_at')
+          .select('*')
           .eq('id', authUser.id)
           .maybeSingle();
 
@@ -95,6 +106,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return null;
         }
 
+        const isManager = isManagerEmail(authUser.email);
+
         let verifiedRole: UserRole = 'STAFF';
         if (isSuperAdmin) {
           verifiedRole = 'ADMIN';
@@ -108,6 +121,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               profileData.role = 'ADMIN';
             } catch (healErr) {
               console.warn('Syncing ADMIN role to Supabase profiles table:', healErr);
+            }
+          }
+        } else if (isManager) {
+          verifiedRole = 'MANAGER';
+          // Actively heal and sync MANAGER role to Supabase profile row
+          if (profileData && profileData.role !== 'MANAGER') {
+            try {
+              await supabase
+                .from('profiles')
+                .update({ role: 'MANAGER', updated_at: new Date().toISOString() })
+                .eq('id', authUser.id);
+              profileData.role = 'MANAGER';
+            } catch (healErr) {
+              console.warn('Syncing MANAGER role to Supabase profiles table:', healErr);
             }
           }
         } else {

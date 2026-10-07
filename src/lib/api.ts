@@ -34,33 +34,6 @@ const DEFAULT_USERS: Profile[] = [
     is_active: true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
-  },
-  {
-    id: 'user-admin-01',
-    full_name: 'Tariq Khan',
-    email: 'admin@nowsheramall.pk',
-    role: 'ADMIN',
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    id: 'user-manager-02',
-    full_name: 'Bilawal Shah',
-    email: 'manager@nowsheramall.pk',
-    role: 'MANAGER',
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    id: 'user-staff-03',
-    full_name: 'Zainab Bibi',
-    email: 'staff@nowsheramall.pk',
-    role: 'STAFF',
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
   }
 ];
 
@@ -116,288 +89,11 @@ const DEFAULT_PRODUCTS: Product[] = [
     is_active: true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
-  },
-  {
-    id: 'prod-mou-03',
-    sku: 'ACC-MOU-003',
-    name: 'Logitech Silent Wireless Mouse',
-    description: 'Ergonomic 2.4GHz optical wireless mouse with silent clicks',
-    category_id: 'cat-acc-02',
-    category_name: 'Accessories & Peripherals',
-    default_supplier_id: 'sup-now-02',
-    supplier_name: 'Nowshera Wholesale Hub',
-    selling_price: 1850,
-    cost_price: 1200,
-    profit: 650,
-    profit_margin_percent: 35.14,
-    reorder_level: 10,
-    quantity_on_hand: 42,
-    inventory_version: 1,
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    id: 'prod-bnk-04',
-    sku: 'PWR-BNK-004',
-    name: 'Anker 20,000mAh Power Bank',
-    description: 'High capacity dual-port portable battery with PowerIQ charging',
-    category_id: 'cat-pwr-03',
-    category_name: 'Power & Cables',
-    default_supplier_id: 'sup-pak-03',
-    supplier_name: 'Pak Electronics Center',
-    selling_price: 5500,
-    cost_price: 3800,
-    profit: 1700,
-    profit_margin_percent: 30.91,
-    reorder_level: 12,
-    quantity_on_hand: 6, // Low Stock!
-    inventory_version: 1,
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    id: 'prod-kbd-05',
-    sku: 'ACC-KBD-005',
-    name: 'Mechanical Gaming Keyboard RGB',
-    description: 'Tenkeyless tactile mechanical switches with per-key RGB backlighting',
-    category_id: 'cat-acc-02',
-    category_name: 'Accessories & Peripherals',
-    default_supplier_id: 'sup-now-02',
-    supplier_name: 'Nowshera Wholesale Hub',
-    selling_price: 4200,
-    cost_price: 2800,
-    profit: 1400,
-    profit_margin_percent: 33.33,
-    reorder_level: 8,
-    quantity_on_hand: 28,
-    inventory_version: 1,
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    id: 'prod-adp-06',
-    sku: 'ELEC-CHG-006',
-    name: 'Apple 20W USB-C Power Adapter',
-    description: 'Compact USB-C fast charging wall plug for iPhone & iPad',
-    category_id: 'cat-elec-01',
-    category_name: 'Electronics & Mobile',
-    default_supplier_id: 'sup-pak-03',
-    supplier_name: 'Pak Electronics Center',
-    selling_price: 3200,
-    cost_price: 2200,
-    profit: 1000,
-    profit_margin_percent: 31.25,
-    reorder_level: 10,
-    quantity_on_hand: 19,
-    inventory_version: 1,
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
   }
 ];
 
 function generateDefaultMovements(): InventoryMovement[] {
-  const now = Date.now();
-  const day = 24 * 60 * 60 * 1000;
-  return [
-    {
-      id: 'mov-seed-01',
-      product_id: 'prod-cab-01',
-      product_name: 'Baseus 65W Fast Charging USB-C Cable',
-      product_sku: 'ELEC-CAB-001',
-      movement_type: 'OUT',
-      quantity: 18,
-      quantity_before: 138,
-      quantity_after: 120,
-      reason: 'Retail Counter Walk-in Sales',
-      source: 'MANUAL',
-      performed_by: 'usr-admin-01',
-      performer_name: 'Hussain Rabi',
-      idempotency_key: 'seed-out-01',
-      created_at: new Date(now - 1.2 * day).toISOString()
-    },
-    {
-      id: 'mov-seed-02',
-      product_id: 'prod-cab-01',
-      product_name: 'Baseus 65W Fast Charging USB-C Cable',
-      product_sku: 'ELEC-CAB-001',
-      movement_type: 'OUT',
-      quantity: 16,
-      quantity_before: 154,
-      quantity_after: 138,
-      reason: 'Cashier Register 1 Dispatch',
-      source: 'MANUAL',
-      performed_by: 'usr-staff-03',
-      performer_name: 'Tariq Khan',
-      idempotency_key: 'seed-out-02',
-      created_at: new Date(now - 2.5 * day).toISOString()
-    },
-    {
-      id: 'mov-seed-03',
-      product_id: 'prod-chg-02',
-      product_name: 'Samsung 45W Super Fast Charger',
-      product_sku: 'ELEC-CHG-002',
-      movement_type: 'OUT',
-      quantity: 14,
-      quantity_before: 22,
-      quantity_after: 8,
-      reason: 'Mobile Accessories Section Sales',
-      source: 'MANUAL',
-      performed_by: 'usr-mgr-02',
-      performer_name: 'Zainab Bibi',
-      idempotency_key: 'seed-out-03',
-      created_at: new Date(now - 2.8 * day).toISOString()
-    },
-    {
-      id: 'mov-seed-04',
-      product_id: 'prod-cab-01',
-      product_name: 'Baseus 65W Fast Charging USB-C Cable',
-      product_sku: 'ELEC-CAB-001',
-      movement_type: 'OUT',
-      quantity: 14,
-      quantity_before: 168,
-      quantity_after: 154,
-      reason: 'Customer Outbound Sales',
-      source: 'MANUAL',
-      performed_by: 'usr-staff-03',
-      performer_name: 'Tariq Khan',
-      idempotency_key: 'seed-out-04',
-      created_at: new Date(now - 3.8 * day).toISOString()
-    },
-    {
-      id: 'mov-seed-05',
-      product_id: 'prod-mou-03',
-      product_name: 'Logitech Silent Wireless Mouse',
-      product_sku: 'ACC-MOU-003',
-      movement_type: 'OUT',
-      quantity: 11,
-      quantity_before: 53,
-      quantity_after: 42,
-      reason: 'Peripherals Department Sales',
-      source: 'MANUAL',
-      performed_by: 'usr-admin-01',
-      performer_name: 'Hussain Rabi',
-      idempotency_key: 'seed-out-05',
-      created_at: new Date(now - 3.2 * day).toISOString()
-    },
-    {
-      id: 'mov-seed-06',
-      product_id: 'prod-adp-06',
-      product_name: 'Apple 20W USB-C Power Adapter',
-      product_sku: 'ELEC-CHG-006',
-      movement_type: 'OUT',
-      quantity: 9,
-      quantity_before: 28,
-      quantity_after: 19,
-      reason: 'Store Register Sales',
-      source: 'MANUAL',
-      performed_by: 'usr-staff-03',
-      performer_name: 'Tariq Khan',
-      idempotency_key: 'seed-out-06',
-      created_at: new Date(now - 4.1 * day).toISOString()
-    },
-    {
-      id: 'mov-seed-07',
-      product_id: 'prod-chg-02',
-      product_name: 'Samsung 45W Super Fast Charger',
-      product_sku: 'ELEC-CHG-002',
-      movement_type: 'OUT',
-      quantity: 8,
-      quantity_before: 30,
-      quantity_after: 22,
-      reason: 'Electronics Counter Sales',
-      source: 'MANUAL',
-      performed_by: 'usr-mgr-02',
-      performer_name: 'Zainab Bibi',
-      idempotency_key: 'seed-out-07',
-      created_at: new Date(now - 4.9 * day).toISOString()
-    },
-    {
-      id: 'mov-seed-08',
-      product_id: 'prod-bnk-04',
-      product_name: 'Anker 20,000mAh Power Bank',
-      product_sku: 'PWR-BNK-004',
-      movement_type: 'OUT',
-      quantity: 8,
-      quantity_before: 14,
-      quantity_after: 6,
-      reason: 'Power Accessories Customer Dispatch',
-      source: 'MANUAL',
-      performed_by: 'usr-admin-01',
-      performer_name: 'Hussain Rabi',
-      idempotency_key: 'seed-out-08',
-      created_at: new Date(now - 4.5 * day).toISOString()
-    },
-    {
-      id: 'mov-seed-09',
-      product_id: 'prod-cab-01',
-      product_name: 'Baseus 65W Fast Charging USB-C Cable',
-      product_sku: 'ELEC-CAB-001',
-      movement_type: 'OUT',
-      quantity: 10,
-      quantity_before: 178,
-      quantity_after: 168,
-      reason: 'Weekend Promotion Sales',
-      source: 'MANUAL',
-      performed_by: 'usr-staff-03',
-      performer_name: 'Tariq Khan',
-      idempotency_key: 'seed-out-09',
-      created_at: new Date(now - 5.6 * day).toISOString()
-    },
-    {
-      id: 'mov-seed-10',
-      product_id: 'prod-mou-03',
-      product_name: 'Logitech Silent Wireless Mouse',
-      product_sku: 'ACC-MOU-003',
-      movement_type: 'OUT',
-      quantity: 7,
-      quantity_before: 60,
-      quantity_after: 53,
-      reason: 'Accessories Counter Dispatch',
-      source: 'MANUAL',
-      performed_by: 'usr-mgr-02',
-      performer_name: 'Zainab Bibi',
-      idempotency_key: 'seed-out-10',
-      created_at: new Date(now - 5.9 * day).toISOString()
-    },
-    {
-      id: 'mov-seed-11',
-      product_id: 'prod-kbd-05',
-      product_name: 'Mechanical Gaming Keyboard RGB',
-      product_sku: 'ACC-KBD-005',
-      movement_type: 'OUT',
-      quantity: 6,
-      quantity_before: 34,
-      quantity_after: 28,
-      reason: 'Gaming Counter Sales',
-      source: 'MANUAL',
-      performed_by: 'usr-admin-01',
-      performer_name: 'Hussain Rabi',
-      idempotency_key: 'seed-out-11',
-      created_at: new Date(now - 6.2 * day).toISOString()
-    },
-    {
-      id: 'mov-seed-12',
-      product_id: 'prod-cab-01',
-      product_name: 'Baseus 65W Fast Charging USB-C Cable',
-      product_sku: 'ELEC-CAB-001',
-      movement_type: 'IN',
-      quantity: 100,
-      quantity_before: 78,
-      quantity_after: 178,
-      reason: 'Weekly Restock Batch Delivery',
-      source: 'MANUAL',
-      performed_by: 'usr-admin-01',
-      performer_name: 'Hussain Rabi',
-      supplier_id: 'sup-ali-01',
-      supplier_name: 'Ali Traders (Lahore)',
-      idempotency_key: 'seed-in-12',
-      created_at: new Date(now - 6.5 * day).toISOString()
-    }
-  ];
+  return [];
 }
 
 function getLocalDB(): LocalDB {
@@ -496,62 +192,99 @@ export function sanitizeProductForRole(product: Product, role: UserRole): Produc
  */
 export async function getProducts(role: UserRole = 'STAFF'): Promise<Product[]> {
   const supabase = getSupabase();
+  const safeRole = (role || 'STAFF').toString().toUpperCase() as UserRole;
+  const isElevated = safeRole === 'ADMIN' || safeRole === 'MANAGER';
 
-  if (supabase) {
-    try {
-      // Base table query with join
-      const { data: rawData, error: rawError } = await supabase
-        .from('products')
-        .select(`
-          id, sku, name, description, category_id, default_supplier_id,
-          selling_price, ${role !== 'STAFF' ? 'cost_price,' : ''}
-          reorder_level, is_active, created_at, updated_at,
-          inventory(quantity_on_hand, version),
-          categories(name),
-          suppliers(name)
-        `)
-        .order('name');
-
-      if (!rawError && rawData) {
-        return rawData.map((item: any) => {
-          const inv = Array.isArray(item.inventory) ? item.inventory[0] : item.inventory;
-          const cat = Array.isArray(item.categories) ? item.categories[0] : item.categories;
-          const sup = Array.isArray(item.suppliers) ? item.suppliers[0] : item.suppliers;
-          const qty = inv?.quantity_on_hand ?? 0;
-          const cost = role !== 'STAFF' ? Number(item.cost_price) : undefined;
-          const sell = Number(item.selling_price);
-
-          const prod: Product = {
-            id: item.id,
-            sku: item.sku,
-            name: item.name,
-            description: item.description || '',
-            category_id: item.category_id,
-            category_name: cat?.name || 'General',
-            default_supplier_id: item.default_supplier_id,
-            supplier_name: sup?.name || 'Unassigned',
-            selling_price: sell,
-            cost_price: cost,
-            profit: cost !== undefined ? sell - cost : undefined,
-            profit_margin_percent: cost !== undefined && sell > 0 ? Number(((sell - cost) / sell * 100).toFixed(2)) : undefined,
-            reorder_level: item.reorder_level || 10,
-            quantity_on_hand: qty,
-            inventory_version: inv?.version || 1,
-            is_active: item.is_active ?? true,
-            created_at: item.created_at,
-            updated_at: item.updated_at
-          };
-          return sanitizeProductForRole(prod, role);
-        });
-      }
-    } catch (err) {
-      console.warn('Supabase query error:', err);
-    }
+  if (!supabase) {
+    throw new Error('Supabase is not configured');
   }
 
-  // Pure local storage buffer (empty if nothing added yet)
+  const { data: userData, error: authError } =
+    await supabase.auth.getUser();
+
+  console.log('AUTH CHECK:', {
+    role: safeRole,
+    userId: userData?.user?.id,
+    email: userData?.user?.email,
+    authError
+  });
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!userData?.user) {
+    throw new Error('No authenticated Supabase user');
+  }
+
+  const { data, error } =
+    await supabase.rpc('get_inventory_dashboard');
+
+  if (error) {
+    console.error('get_inventory_dashboard FAILED:', error);
+    throw error;
+  }
+
+  return (data || []).map((item: any) => {
+    const sell = Number(item.selling_price);
+    const cost = isElevated
+      ? Number(item.cost_price)
+      : undefined;
+
+    const product: Product = {
+      id: item.id,
+      sku: item.sku,
+      name: item.name,
+      description: item.description || '',
+      category_id: item.category_id || '',
+      category_name: item.category_name || 'General',
+      default_supplier_id: item.default_supplier_id || '',
+      supplier_name: item.supplier_name || 'Unassigned',
+
+      selling_price: sell,
+      cost_price: cost,
+
+      profit:
+        cost !== undefined
+          ? sell - cost
+          : undefined,
+
+      profit_margin_percent:
+        cost !== undefined && sell > 0
+          ? Number(
+              (((sell - cost) / sell) * 100).toFixed(2)
+            )
+          : undefined,
+
+      reorder_level:
+        Number(item.reorder_level) || 10,
+
+      quantity_on_hand:
+        Number(item.quantity_on_hand) || 0,
+
+      inventory_version:
+        Number(item.inventory_version) || 1,
+
+      is_active:
+        item.is_active ?? true,
+
+      created_at:
+        item.created_at || new Date().toISOString(),
+
+      updated_at:
+        item.updated_at || new Date().toISOString()
+    };
+
+    return sanitizeProductForRole(
+      product,
+      safeRole
+    );
+  });
+}
+
+  // Fallback to local storage buffer
   const db = getLocalDB();
-  return db.products.map((p) => sanitizeProductForRole(p, role));
+  return db.products.map((p) => sanitizeProductForRole(p, safeRole));
 }
 
 /**
@@ -567,6 +300,7 @@ export async function getProductById(idOrSku: string, role: UserRole = 'STAFF'):
  */
 export async function getCategories(): Promise<Category[]> {
   const supabase = getSupabase();
+  const creds = getSupabaseCredentials();
   if (supabase) {
     try {
       const { data, error } = await supabase.from('categories').select('*').order('name');
@@ -574,6 +308,7 @@ export async function getCategories(): Promise<Category[]> {
     } catch (e) {
       console.warn('Supabase getCategories error:', e);
     }
+    if (creds.isConfigured) return [];
   }
   return getLocalDB().categories;
 }
@@ -622,6 +357,7 @@ export async function createCategory(cat: { name: string; code: string; descript
  */
 export async function getSuppliers(): Promise<Supplier[]> {
   const supabase = getSupabase();
+  const creds = getSupabaseCredentials();
   if (supabase) {
     try {
       const { data, error } = await supabase.from('suppliers').select('*').order('name');
@@ -629,6 +365,7 @@ export async function getSuppliers(): Promise<Supplier[]> {
     } catch (e) {
       console.warn('Supabase getSuppliers error:', e);
     }
+    if (creds.isConfigured) return [];
   }
   return getLocalDB().suppliers;
 }
@@ -830,10 +567,6 @@ export async function changeStock(params: {
     }
   }
 
-  // Local storage buffer fallback
-  const db = getLocalDB();
-  const prodIndex = db.products.findIndex((p) => p.id === productId);
-
   if (prodIndex === -1) {
     throw new Error('Product not found in database.');
   }
@@ -907,6 +640,8 @@ export async function getMovementHistory(filters?: {
   searchQuery?: string;
 }): Promise<InventoryMovement[]> {
   const supabase = getSupabase();
+  const creds = getSupabaseCredentials();
+  console.log('TRACE: getMovementHistory called');
 
   if (supabase) {
     try {
@@ -951,7 +686,11 @@ export async function getMovementHistory(filters?: {
         }));
       }
     } catch (e) {
-      console.warn('Supabase getMovementHistory fallback:', e);
+      console.warn('Supabase getMovementHistory error:', e);
+    }
+
+    if (creds.isConfigured) {
+      return [];
     }
   }
 
@@ -1771,30 +1510,33 @@ export async function updateProductPrices(
  */
 export async function getUsers(): Promise<Profile[]> {
   const supabase = getSupabase();
+  console.log('TRACE: getUsers called');
   if (supabase) {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, role, is_active, created_at, updated_at')
-        .order('full_name');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*');
 
-      if (!error && data) {
-        return data.map((p: any) => {
-          const rawRole = (p.role || 'staff').toString().toUpperCase();
-          const verifiedRole: UserRole = (rawRole === 'ADMIN' || rawRole === 'MANAGER') ? rawRole : 'STAFF';
-          return {
-            id: p.id,
-            full_name: p.full_name || 'Staff Member',
-            email: p.email || '',
-            role: verifiedRole,
-            is_active: p.is_active ?? true,
-            created_at: p.created_at,
-            updated_at: p.updated_at
-          };
-        });
+        if (!error && data && data.length > 0) {
+          return data.map((p: any) => {
+            const rawRole = (p.role || 'staff').toString().toUpperCase();
+            const verifiedRole: UserRole = (rawRole === 'ADMIN' || rawRole === 'MANAGER') ? rawRole : 'STAFF';
+            return {
+              id: p.id,
+              full_name: p.full_name || 'Staff Member',
+              email: p.email || '',
+              role: verifiedRole,
+              is_active: p.is_active ?? true,
+              created_at: p.created_at,
+              updated_at: p.updated_at
+            };
+          });
+        }
       }
     } catch (e) {
-      console.warn('Supabase getUsers fallback:', e);
+      console.warn('Supabase getUsers error:', e);
     }
   }
   return getLocalDB().users;
@@ -1970,8 +1712,10 @@ export async function addStaffUser(user: {
  * Fetch high-level inventory metrics for the dashboard.
  */
 export async function getDashboardMetrics(role: UserRole): Promise<DashboardMetrics> {
+  console.log('TRACE: getDashboardMetrics(role:', role, ')');
   const products = await getProducts(role);
   const movements = await getMovementHistory();
+  console.log('TRACE: getDashboardMetrics loaded products:', products.length, 'movements:', movements.length);
 
   const totalProducts = products.length;
   const totalInventoryUnits = products.reduce((acc, p) => acc + p.quantity_on_hand, 0);
