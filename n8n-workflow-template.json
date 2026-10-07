@@ -4,7 +4,7 @@
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "stocksense-ai-copilot",
+        "path": "stocksense-ai",
         "responseMode": "responseNode",
         "options": {}
       },
@@ -39,7 +39,7 @@
       "parameters": {
         "name": "searchProducts",
         "description": "Searches real products and live inventory from Nowshera Shopping Mall Supabase database. Returns SKU, name, quantity on hand, reorder level, and category. Staff will NOT receive cost price.",
-        "workflowId": ""
+        "workflowId": "search-products-sub-workflow"
       },
       "name": "Tool: Search Products",
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
@@ -50,7 +50,7 @@
       "parameters": {
         "name": "prepareStockChange",
         "description": "Prepares a pending 2-step stock change request (Stock In, Stock Out, or Damage) in Supabase. Returns request_id, current_stock, and resulting_stock.",
-        "workflowId": ""
+        "workflowId": "prepare-stock-change-sub-workflow"
       },
       "name": "Tool: Prepare Stock Change",
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",

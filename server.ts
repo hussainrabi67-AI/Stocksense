@@ -18,10 +18,10 @@ async function startServer() {
       const n8nUrl =
         process.env.VITE_N8N_AI_WEBHOOK_URL ||
         process.env.NEXT_PUBLIC_N8N_AI_WEBHOOK_URL ||
-        'https://arwa123.app.n8n.cloud/webhook-test/stocksense-ai';
+        '';
 
       if (!n8nUrl || n8nUrl.includes('your-n8n')) {
-        return res.status(400).json({ error: 'n8n webhook URL not configured correctly.' });
+        return res.status(400).json({ error: 'n8n webhook URL not configured. Set VITE_N8N_AI_WEBHOOK_URL in your environment or Settings page.' });
       }
 
       console.log(`[n8n Proxy] Forwarding request to: ${n8nUrl}`);

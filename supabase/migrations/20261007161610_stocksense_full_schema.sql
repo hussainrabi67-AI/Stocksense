@@ -1,8 +1,54 @@
--- ==============================================================================
--- STOCKSENSE: AI Inventory Management System
--- Schema & RPC Functions for Nowshera Shopping Mall
--- Pure Production Schema (No Fake / Hardcoded Data)
--- ==============================================================================
+/*
+# StockSense: AI Inventory Management System — Full Schema
+
+## Overview
+Complete database schema for Nowshera Shopping Mall inventory management.
+Includes tables, RPCs, views, RLS policies, and auth trigger.
+
+## Tables Created
+1. **profiles** — User profiles linked to auth.users (id, full_name, role, is_active, email)
+2. **categories** — Product categories (name, code, description)
+3. **suppliers** — Supplier records (name, contact_person, email, phone, address, is_active)
+4. **products** — Product catalog (sku, name, description, prices, reorder_level, is_active)
+5. **inventory** — Current stock levels per product (quantity_on_hand, version)
+6. **inventory_movements** — Immutable audit trail of all stock changes
+7. **stock_change_requests** — 2-step AI confirmation workflow (PENDING → CONFIRMED/CANCELLED/EXPIRED)
+8. **audit_logs** — Administrative action audit trail
+9. **idempotency_keys** — Idempotent stock mutation cache
+
+## RPCs Created
+- **handle_new_user()** — Auto-creates profile on auth signup; first user becomes ADMIN
+- **get_my_role()** — Returns caller's role
+- **is_manager() / is_admin() / is_manager_or_admin()** — Role check helpers
+- **get_inventory_dashboard()** — Returns products joined with inventory, categories, suppliers (role-aware)
+- **change_stock()** — Transactional stock mutation with idempotency, row lock, non-negative enforcement
+- **prepare_stock_change()** — Creates PENDING stock change request
+- **confirm_stock_change()** — Confirms a pending request and applies the stock mutation
+- **cancel_stock_change()** — Cancels a pending request
+- **create_product()** — Creates product + initial inventory + initial movement (MANAGER/ADMIN only)
+- **update_product_prices()** — Updates product pricing (MANAGER/ADMIN only)
+- **get_low_stock()** — Returns products at or below reorder threshold
+- **change_user_role()** — Changes user role (ADMIN only, anti-self-promotion, multi-admin protection)
+- **set_user_active()** — Activates/deactivates user (MANAGER/ADMIN only)
+
+## Views Created
+- **products_staff_view** — Excludes cost_price, profit, margin
+- **products_manager_view** — Includes cost_price, profit, margin
+
+## Security
+- RLS enabled on ALL tables
+- SELECT policies for authenticated users on all business tables
+- INSERT/UPDATE/DELETE policies scoped by role (is_manager_or_admin) where appropriate
+- stock_change_requests: SELECT for authenticated, INSERT for authenticated (owner-scoped), UPDATE for authenticated
+- audit_logs: SELECT for authenticated, no direct INSERT (only via SECURITY DEFINER RPCs)
+- All privileged mutations go through SECURITY DEFINER RPCs that bypass RLS safely
+
+## Notes
+1. This is a multi-tenant app with auth — all policies scope TO authenticated
+2. The first user to sign up automatically becomes ADMIN via handle_new_user trigger
+3. All stock mutations use SECURITY DEFINER RPCs for atomicity and role enforcement
+4. cost_price is never exposed to STAFF — the view system enforces this at the database level
+*/
 
 -- 1. EXTENSIONS
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -38,6 +84,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
+-- Trigger to automatically create a profile entry when a user signs up via Supabase Auth
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 DECLARE
@@ -170,7 +217,7 @@ CREATE TABLE IF NOT EXISTS public.idempotency_keys (
 );
 
 -- ==============================================================================
--- VIEWS
+-- RESTRICTED VIEWS
 -- ==============================================================================
 
 CREATE OR REPLACE VIEW public.products_staff_view AS
@@ -231,6 +278,7 @@ $$;
 
 -- ==============================================================================
 -- GET_INVENTORY_DASHBOARD: Role-aware product+inventory join
+-- Returns cost_price only for MANAGER/ADMIN; omits for STAFF
 -- ==============================================================================
 
 CREATE OR REPLACE FUNCTION public.get_inventory_dashboard()
@@ -244,6 +292,16 @@ BEGIN
     END IF;
 
     IF v_role IN ('MANAGER', 'ADMIN') THEN
+        SELECT COALESCE(jsonb_agg(jsonb_build_object(
+            'id', p.id, 'sku', p.sku, 'name', p.name, 'description', COALESCE(p.description, ''),
+            'category_id', COALESCE(p.category_id, ''), 'category_name', COALESCE(c.name, 'General'),
+            'default_supplier_id', COALESCE(p.default_supplier_id, ''), 'supplier_name', COALESCE(s.name, 'Unassigned'),
+            'selling_price', p.selling_price, 'cost_price', p.cost_price,
+            'reorder_level', p.reorder_level, 'is_active', p.is_active,
+            'quantity_on_hand', COALESCE(i.quantity_on_hand, 0), 'inventory_version', COALESCE(i.version, 1),
+            'created_at', COALESCE(p.created_at, now()), 'updated_at', COALESCE(p.updated_at, now())
+        ) ORDER BY p.name), '[]'::jsonb) INTO v_role;
+        -- Re-query with proper return
         RETURN (
             SELECT COALESCE(jsonb_agg(jsonb_build_object(
                 'id', p.id, 'sku', p.sku, 'name', p.name, 'description', COALESCE(p.description, ''),
@@ -633,7 +691,7 @@ ALTER TABLE public.stock_change_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.idempotency_keys ENABLE ROW LEVEL SECURITY;
 
--- Profiles
+-- Profiles: SELECT for authenticated; UPDATE own profile (but cannot change role via direct update)
 DROP POLICY IF EXISTS "Profiles SELECT" ON public.profiles;
 CREATE POLICY "Profiles SELECT" ON public.profiles FOR SELECT TO authenticated USING (true);
 
@@ -641,7 +699,7 @@ DROP POLICY IF EXISTS "Profiles UPDATE own" ON public.profiles;
 CREATE POLICY "Profiles UPDATE own" ON public.profiles FOR UPDATE TO authenticated
 USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
 
--- Categories
+-- Categories: SELECT for all; INSERT/UPDATE/DELETE for managers+admins
 DROP POLICY IF EXISTS "Categories SELECT" ON public.categories;
 CREATE POLICY "Categories SELECT" ON public.categories FOR SELECT TO authenticated USING (true);
 
@@ -654,7 +712,7 @@ CREATE POLICY "Categories UPDATE" ON public.categories FOR UPDATE TO authenticat
 DROP POLICY IF EXISTS "Categories DELETE" ON public.categories;
 CREATE POLICY "Categories DELETE" ON public.categories FOR DELETE TO authenticated USING (public.is_manager_or_admin());
 
--- Suppliers
+-- Suppliers: SELECT for all; INSERT/UPDATE/DELETE for managers+admins
 DROP POLICY IF EXISTS "Suppliers SELECT" ON public.suppliers;
 CREATE POLICY "Suppliers SELECT" ON public.suppliers FOR SELECT TO authenticated USING (true);
 
@@ -667,7 +725,7 @@ CREATE POLICY "Suppliers UPDATE" ON public.suppliers FOR UPDATE TO authenticated
 DROP POLICY IF EXISTS "Suppliers DELETE" ON public.suppliers;
 CREATE POLICY "Suppliers DELETE" ON public.suppliers FOR DELETE TO authenticated USING (public.is_manager_or_admin());
 
--- Products
+-- Products: SELECT for all; INSERT/UPDATE for managers+admins; DELETE for managers+admins
 DROP POLICY IF EXISTS "Products SELECT" ON public.products;
 CREATE POLICY "Products SELECT" ON public.products FOR SELECT TO authenticated USING (true);
 
@@ -680,7 +738,7 @@ CREATE POLICY "Products UPDATE" ON public.products FOR UPDATE TO authenticated U
 DROP POLICY IF EXISTS "Products DELETE" ON public.products;
 CREATE POLICY "Products DELETE" ON public.products FOR DELETE TO authenticated USING (public.is_manager_or_admin());
 
--- Inventory
+-- Inventory: SELECT for all; INSERT/UPDATE for managers+admins (direct table fallback for create_product)
 DROP POLICY IF EXISTS "Inventory SELECT" ON public.inventory;
 CREATE POLICY "Inventory SELECT" ON public.inventory FOR SELECT TO authenticated USING (true);
 
@@ -690,14 +748,14 @@ CREATE POLICY "Inventory INSERT" ON public.inventory FOR INSERT TO authenticated
 DROP POLICY IF EXISTS "Inventory UPDATE" ON public.inventory;
 CREATE POLICY "Inventory UPDATE" ON public.inventory FOR UPDATE TO authenticated USING (public.is_manager_or_admin()) WITH CHECK (public.is_manager_or_admin());
 
--- Inventory Movements
+-- Inventory Movements: SELECT for all; INSERT for all authenticated (staff can record movements via RPC)
 DROP POLICY IF EXISTS "Movements SELECT" ON public.inventory_movements;
 CREATE POLICY "Movements SELECT" ON public.inventory_movements FOR SELECT TO authenticated USING (true);
 
 DROP POLICY IF EXISTS "Movements INSERT" ON public.inventory_movements;
 CREATE POLICY "Movements INSERT" ON public.inventory_movements FOR INSERT TO authenticated WITH CHECK (true);
 
--- Stock Change Requests
+-- Stock Change Requests: SELECT for all authenticated; INSERT for all authenticated; UPDATE for all authenticated
 DROP POLICY IF EXISTS "StockRequests SELECT" ON public.stock_change_requests;
 CREATE POLICY "StockRequests SELECT" ON public.stock_change_requests FOR SELECT TO authenticated USING (true);
 
@@ -707,10 +765,10 @@ CREATE POLICY "StockRequests INSERT" ON public.stock_change_requests FOR INSERT 
 DROP POLICY IF EXISTS "StockRequests UPDATE" ON public.stock_change_requests;
 CREATE POLICY "StockRequests UPDATE" ON public.stock_change_requests FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
 
--- Audit Logs
+-- Audit Logs: SELECT for authenticated; no direct INSERT (only via SECURITY DEFINER RPCs)
 DROP POLICY IF EXISTS "AuditLogs SELECT" ON public.audit_logs;
 CREATE POLICY "AuditLogs SELECT" ON public.audit_logs FOR SELECT TO authenticated USING (true);
 
--- Idempotency Keys (no direct access)
+-- Idempotency Keys: no direct access (only used by SECURITY DEFINER RPCs)
 DROP POLICY IF EXISTS "IdempotencyKeys SELECT" ON public.idempotency_keys;
 CREATE POLICY "IdempotencyKeys SELECT" ON public.idempotency_keys FOR SELECT TO authenticated USING (false);

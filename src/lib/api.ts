@@ -1,4 +1,4 @@
-import { getSupabase, getSupabaseCredentials } from './supabase';
+import { getSupabase } from './supabase';
 import {
   Product,
   InventoryMovement,
@@ -12,169 +12,12 @@ import {
 } from '../types/inventory';
 
 // ==============================================================================
-// LOCAL STORAGE BUFFER
-// Pre-seeded with Nowshera Shopping Mall initial inventory if local storage is empty
-// ==============================================================================
-
-interface LocalDB {
-  products: Product[];
-  movements: InventoryMovement[];
-  requests: StockChangeRequest[];
-  categories: Category[];
-  suppliers: Supplier[];
-  users: Profile[];
-}
-
-const DEFAULT_USERS: Profile[] = [
-  {
-    id: 'user-admin-hussain',
-    full_name: 'Hussain Rabi',
-    email: 'hussainrabi67@gmail.com',
-    role: 'ADMIN',
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  }
-];
-
-const DEFAULT_CATEGORIES: Category[] = [
-  { id: 'cat-elec-01', name: 'Electronics & Mobile', code: 'ELEC', description: 'Smart devices, chargers, and mobile gear', created_at: new Date().toISOString() },
-  { id: 'cat-acc-02', name: 'Accessories & Peripherals', code: 'ACC', description: 'Mice, keyboards, and computer peripherals', created_at: new Date().toISOString() },
-  { id: 'cat-pwr-03', name: 'Power & Cables', code: 'PWR', description: 'Power banks, adapters, and high-speed cables', created_at: new Date().toISOString() }
-];
-
-const DEFAULT_SUPPLIERS: Supplier[] = [
-  { id: 'sup-ali-01', name: 'Ali Traders (Lahore)', contact_person: 'Muhammad Ali', email: 'alitrader@lahore.pk', phone: '0300-1234567', is_active: true, created_at: new Date().toISOString() },
-  { id: 'sup-now-02', name: 'Nowshera Wholesale Hub', contact_person: 'Farhan Ahmad', email: 'orders@nowsherahub.pk', phone: '0312-9876543', is_active: true, created_at: new Date().toISOString() },
-  { id: 'sup-pak-03', name: 'Pak Electronics Center', contact_person: 'Rashid Mahmood', email: 'rashid@pakelec.pk', phone: '0333-5556677', is_active: true, created_at: new Date().toISOString() }
-];
-
-const DEFAULT_PRODUCTS: Product[] = [
-  {
-    id: 'prod-cbl-01',
-    sku: 'ELEC-CBL-001',
-    name: 'Type-C Fast Charging Cable (65W)',
-    description: 'Braided 1.8m durable USB-C to USB-C cable for laptops & mobile devices',
-    category_id: 'cat-pwr-03',
-    category_name: 'Power & Cables',
-    default_supplier_id: 'sup-ali-01',
-    supplier_name: 'Ali Traders (Lahore)',
-    selling_price: 850,
-    cost_price: 450,
-    profit: 400,
-    profit_margin_percent: 47.06,
-    reorder_level: 25,
-    quantity_on_hand: 120,
-    inventory_version: 1,
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    id: 'prod-chg-02',
-    sku: 'ELEC-CHG-002',
-    name: 'Samsung 45W Super Fast Charger',
-    description: 'Original 45W Type-C power adapter with Power Delivery support',
-    category_id: 'cat-elec-01',
-    category_name: 'Electronics & Mobile',
-    default_supplier_id: 'sup-ali-01',
-    supplier_name: 'Ali Traders (Lahore)',
-    selling_price: 2400,
-    cost_price: 1600,
-    profit: 800,
-    profit_margin_percent: 33.33,
-    reorder_level: 15,
-    quantity_on_hand: 8, // Low Stock!
-    inventory_version: 1,
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  }
-];
-
-function generateDefaultMovements(): InventoryMovement[] {
-  return [];
-}
-
-function getLocalDB(): LocalDB {
-  if (typeof window === 'undefined') {
-    return {
-      products: DEFAULT_PRODUCTS,
-      movements: generateDefaultMovements(),
-      requests: [],
-      categories: DEFAULT_CATEGORIES,
-      suppliers: DEFAULT_SUPPLIERS,
-      users: DEFAULT_USERS
-    };
-  }
-
-  const storedProd = localStorage.getItem('stocksense_db_products');
-  const storedMov = localStorage.getItem('stocksense_db_movements');
-  const storedReq = localStorage.getItem('stocksense_db_requests');
-  const storedCats = localStorage.getItem('stocksense_db_categories');
-  const storedSups = localStorage.getItem('stocksense_db_suppliers');
-  const storedUsers = localStorage.getItem('stocksense_db_users');
-
-  const products = storedProd ? (JSON.parse(storedProd) as Product[]) : DEFAULT_PRODUCTS;
-  const categories = storedCats ? (JSON.parse(storedCats) as Category[]) : DEFAULT_CATEGORIES;
-  const suppliers = storedSups ? (JSON.parse(storedSups) as Supplier[]) : DEFAULT_SUPPLIERS;
-  const users = storedUsers ? (JSON.parse(storedUsers) as Profile[]) : DEFAULT_USERS;
-
-  let movements: InventoryMovement[] = [];
-  if (storedMov) {
-    try {
-      movements = JSON.parse(storedMov) as InventoryMovement[];
-    } catch (e) {
-      movements = [];
-    }
-  }
-
-  // Seed default weekly movements if none exist
-  if (!movements || movements.length === 0) {
-    movements = generateDefaultMovements();
-    localStorage.setItem('stocksense_db_movements', JSON.stringify(movements));
-  }
-
-  // Ensure initial data saved if not present
-  if (!storedProd) localStorage.setItem('stocksense_db_products', JSON.stringify(DEFAULT_PRODUCTS));
-  if (!storedCats) localStorage.setItem('stocksense_db_categories', JSON.stringify(DEFAULT_CATEGORIES));
-  if (!storedSups) localStorage.setItem('stocksense_db_suppliers', JSON.stringify(DEFAULT_SUPPLIERS));
-  if (!storedUsers) localStorage.setItem('stocksense_db_users', JSON.stringify(DEFAULT_USERS));
-
-  return {
-    products,
-    movements,
-    requests: storedReq ? (JSON.parse(storedReq) as StockChangeRequest[]) : [],
-    categories,
-    suppliers,
-    users
-  };
-}
-
-function saveLocalDB(data: {
-  products?: Product[];
-  movements?: InventoryMovement[];
-  requests?: StockChangeRequest[];
-  categories?: Category[];
-  suppliers?: Supplier[];
-  users?: Profile[];
-}) {
-  if (typeof window === 'undefined') return;
-  if (data.products !== undefined) localStorage.setItem('stocksense_db_products', JSON.stringify(data.products));
-  if (data.movements !== undefined) localStorage.setItem('stocksense_db_movements', JSON.stringify(data.movements));
-  if (data.requests !== undefined) localStorage.setItem('stocksense_db_requests', JSON.stringify(data.requests));
-  if (data.categories !== undefined) localStorage.setItem('stocksense_db_categories', JSON.stringify(data.categories));
-  if (data.suppliers !== undefined) localStorage.setItem('stocksense_db_suppliers', JSON.stringify(data.suppliers));
-  if (data.users !== undefined) localStorage.setItem('stocksense_db_users', JSON.stringify(data.users));
-}
-
-// ==============================================================================
-// CORE API EXPORTS
+// CORE API EXPORTS — Supabase only, no mock data
 // ==============================================================================
 
 /**
  * Filter product data based on user role.
- * CRITICAL REQUIREMENT: Staff members MUST NEVER see cost_price, profit, or margin.
+ * STAFF members must never see cost_price, profit, or margin.
  */
 export function sanitizeProductForRole(product: Product, role: UserRole): Product {
   if (role === 'STAFF') {
@@ -188,48 +31,25 @@ export function sanitizeProductForRole(product: Product, role: UserRole): Produc
 }
 
 /**
- * Fetch all products, securely filtered for the caller's role.
+ * Fetch all products, securely filtered for the caller's role via get_inventory_dashboard RPC.
  */
 export async function getProducts(role: UserRole = 'STAFF'): Promise<Product[]> {
   const supabase = getSupabase();
+  if (!supabase) throw new Error('Supabase is not configured');
+
   const safeRole = (role || 'STAFF').toString().toUpperCase() as UserRole;
   const isElevated = safeRole === 'ADMIN' || safeRole === 'MANAGER';
 
-  if (!supabase) {
-    throw new Error('Supabase is not configured');
-  }
+  const { data: userData, error: authError } = await supabase.auth.getUser();
+  if (authError) throw authError;
+  if (!userData?.user) throw new Error('No authenticated Supabase user');
 
-  const { data: userData, error: authError } =
-    await supabase.auth.getUser();
-
-  console.log('AUTH CHECK:', {
-    role: safeRole,
-    userId: userData?.user?.id,
-    email: userData?.user?.email,
-    authError
-  });
-
-  if (authError) {
-    throw authError;
-  }
-
-  if (!userData?.user) {
-    throw new Error('No authenticated Supabase user');
-  }
-
-  const { data, error } =
-    await supabase.rpc('get_inventory_dashboard');
-
-  if (error) {
-    console.error('get_inventory_dashboard FAILED:', error);
-    throw error;
-  }
+  const { data, error } = await supabase.rpc('get_inventory_dashboard');
+  if (error) throw error;
 
   return (data || []).map((item: any) => {
     const sell = Number(item.selling_price);
-    const cost = isElevated
-      ? Number(item.cost_price)
-      : undefined;
+    const cost = isElevated ? Number(item.cost_price) : undefined;
 
     const product: Product = {
       id: item.id,
@@ -240,51 +60,23 @@ export async function getProducts(role: UserRole = 'STAFF'): Promise<Product[]> 
       category_name: item.category_name || 'General',
       default_supplier_id: item.default_supplier_id || '',
       supplier_name: item.supplier_name || 'Unassigned',
-
       selling_price: sell,
       cost_price: cost,
-
-      profit:
-        cost !== undefined
-          ? sell - cost
-          : undefined,
-
+      profit: cost !== undefined ? sell - cost : undefined,
       profit_margin_percent:
         cost !== undefined && sell > 0
-          ? Number(
-              (((sell - cost) / sell) * 100).toFixed(2)
-            )
+          ? Number((((sell - cost) / sell) * 100).toFixed(2))
           : undefined,
-
-      reorder_level:
-        Number(item.reorder_level) || 10,
-
-      quantity_on_hand:
-        Number(item.quantity_on_hand) || 0,
-
-      inventory_version:
-        Number(item.inventory_version) || 1,
-
-      is_active:
-        item.is_active ?? true,
-
-      created_at:
-        item.created_at || new Date().toISOString(),
-
-      updated_at:
-        item.updated_at || new Date().toISOString()
+      reorder_level: Number(item.reorder_level) || 10,
+      quantity_on_hand: Number(item.quantity_on_hand) || 0,
+      inventory_version: Number(item.inventory_version) || 1,
+      is_active: item.is_active ?? true,
+      created_at: item.created_at || new Date().toISOString(),
+      updated_at: item.updated_at || new Date().toISOString()
     };
 
-    return sanitizeProductForRole(
-      product,
-      safeRole
-    );
+    return sanitizeProductForRole(product, safeRole);
   });
-}
-
-  // Fallback to local storage buffer
-  const db = getLocalDB();
-  return db.products.map((p) => sanitizeProductForRole(p, safeRole));
 }
 
 /**
@@ -292,7 +84,9 @@ export async function getProducts(role: UserRole = 'STAFF'): Promise<Product[]> 
  */
 export async function getProductById(idOrSku: string, role: UserRole = 'STAFF'): Promise<Product | null> {
   const products = await getProducts(role);
-  return products.find((p) => p.id === idOrSku || p.sku.toLowerCase() === idOrSku.toLowerCase()) || null;
+  return products.find(
+    (p) => p.id === idOrSku || p.sku.toLowerCase() === idOrSku.toLowerCase()
+  ) || null;
 }
 
 /**
@@ -300,17 +94,11 @@ export async function getProductById(idOrSku: string, role: UserRole = 'STAFF'):
  */
 export async function getCategories(): Promise<Category[]> {
   const supabase = getSupabase();
-  const creds = getSupabaseCredentials();
-  if (supabase) {
-    try {
-      const { data, error } = await supabase.from('categories').select('*').order('name');
-      if (!error && data) return data;
-    } catch (e) {
-      console.warn('Supabase getCategories error:', e);
-    }
-    if (creds.isConfigured) return [];
-  }
-  return getLocalDB().categories;
+  if (!supabase) throw new Error('Supabase is not configured');
+
+  const { data, error } = await supabase.from('categories').select('*').order('name');
+  if (error) throw error;
+  return data || [];
 }
 
 /**
@@ -318,38 +106,20 @@ export async function getCategories(): Promise<Category[]> {
  */
 export async function createCategory(cat: { name: string; code: string; description?: string }): Promise<Category> {
   const supabase = getSupabase();
-  if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('categories')
-        .insert([{
-          name: cat.name.trim(),
-          code: cat.code.trim().toUpperCase(),
-          description: cat.description?.trim() || null
-        }])
-        .select()
-        .single();
-      if (!error && data) return data as Category;
-    } catch (e) {
-      console.warn('Supabase createCategory error:', e);
-    }
-  }
+  if (!supabase) throw new Error('Supabase is not configured');
 
-  const db = getLocalDB();
-  if (db.categories.some((c) => c.code.toLowerCase() === cat.code.toLowerCase())) {
-    throw new Error(`A category with code ${cat.code} already exists.`);
-  }
+  const { data, error } = await supabase
+    .from('categories')
+    .insert([{
+      name: cat.name.trim(),
+      code: cat.code.trim().toUpperCase(),
+      description: cat.description?.trim() || null
+    }])
+    .select()
+    .single();
 
-  const newCat: Category = {
-    id: 'cat-' + Date.now(),
-    name: cat.name.trim(),
-    code: cat.code.trim().toUpperCase(),
-    description: cat.description?.trim(),
-    created_at: new Date().toISOString()
-  };
-  db.categories.push(newCat);
-  saveLocalDB(db);
-  return newCat;
+  if (error) throw error;
+  return data as Category;
 }
 
 /**
@@ -357,17 +127,11 @@ export async function createCategory(cat: { name: string; code: string; descript
  */
 export async function getSuppliers(): Promise<Supplier[]> {
   const supabase = getSupabase();
-  const creds = getSupabaseCredentials();
-  if (supabase) {
-    try {
-      const { data, error } = await supabase.from('suppliers').select('*').order('name');
-      if (!error && data) return data;
-    } catch (e) {
-      console.warn('Supabase getSuppliers error:', e);
-    }
-    if (creds.isConfigured) return [];
-  }
-  return getLocalDB().suppliers;
+  if (!supabase) throw new Error('Supabase is not configured');
+
+  const { data, error } = await supabase.from('suppliers').select('*').order('name');
+  if (error) throw error;
+  return data || [];
 }
 
 /**
@@ -381,40 +145,23 @@ export async function createSupplier(sup: {
   address?: string;
 }): Promise<Supplier> {
   const supabase = getSupabase();
-  if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('suppliers')
-        .insert([{
-          name: sup.name.trim(),
-          contact_person: sup.contact_person?.trim() || null,
-          email: sup.email?.trim() || null,
-          phone: sup.phone?.trim() || null,
-          address: sup.address?.trim() || null,
-          is_active: true
-        }])
-        .select()
-        .single();
-      if (!error && data) return data as Supplier;
-    } catch (e) {
-      console.warn('Supabase createSupplier error:', e);
-    }
-  }
+  if (!supabase) throw new Error('Supabase is not configured');
 
-  const db = getLocalDB();
-  const newSup: Supplier = {
-    id: 'sup-' + Date.now(),
-    name: sup.name.trim(),
-    contact_person: sup.contact_person?.trim(),
-    email: sup.email?.trim(),
-    phone: sup.phone?.trim(),
-    address: sup.address?.trim(),
-    is_active: true,
-    created_at: new Date().toISOString()
-  };
-  db.suppliers.push(newSup);
-  saveLocalDB(db);
-  return newSup;
+  const { data, error } = await supabase
+    .from('suppliers')
+    .insert([{
+      name: sup.name.trim(),
+      contact_person: sup.contact_person?.trim() || null,
+      email: sup.email?.trim() || null,
+      phone: sup.phone?.trim() || null,
+      address: sup.address?.trim() || null,
+      is_active: true
+    }])
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Supplier;
 }
 
 /**
@@ -426,8 +173,8 @@ export async function getLowStockProducts(role: UserRole = 'STAFF'): Promise<Pro
 }
 
 /**
- * Transactional stock mutation via Supabase RPC `change_stock` or Local Engine.
- * STRICT SECURITY: Rejects negative stock. Never allows inventory < 0.
+ * Transactional stock mutation via Supabase RPC `change_stock`.
+ * Rejects negative stock. Never allows inventory < 0.
  */
 export async function changeStock(params: {
   productId: string;
@@ -445,7 +192,7 @@ export async function changeStock(params: {
   quantityBefore: number;
   quantityAfter: number;
 }> {
-  const { productId, movementType, quantity, supplierId, reason, source = 'MANUAL', referenceId, performedByName, idempotencyKey } = params;
+  const { productId, movementType, quantity, supplierId, reason, source = 'MANUAL', referenceId, idempotencyKey } = params;
 
   if (quantity <= 0) {
     throw new Error('Quantity must be greater than zero.');
@@ -456,178 +203,27 @@ export async function changeStock(params: {
     : `stock-${productId}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
   const supabase = getSupabase();
+  if (!supabase) throw new Error('Supabase is not configured');
 
-  if (supabase) {
-    // 1. Try Supabase RPC change_stock with non-null idempotency key
-    try {
-      const { data, error } = await supabase.rpc('change_stock', {
-        p_product_id: productId,
-        p_movement_type: movementType,
-        p_quantity: quantity,
-        p_supplier_id: supplierId || null,
-        p_reason: reason,
-        p_source: source,
-        p_idempotency_key: safeKey
-      });
+  const { data, error } = await supabase.rpc('change_stock', {
+    p_product_id: productId,
+    p_movement_type: movementType,
+    p_quantity: quantity,
+    p_supplier_id: supplierId || null,
+    p_reason: reason,
+    p_source: source,
+    p_reference_id: referenceId || null,
+    p_idempotency_key: safeKey
+  });
 
-      if (!error && data) {
-        return {
-          success: true,
-          movementId: data.movement_id || 'supabase-' + Date.now(),
-          quantityBefore: data.quantity_before,
-          quantityAfter: data.quantity_after
-        };
-      }
-
-      if (error && error.message?.includes('Insufficient stock')) {
-        throw new Error(error.message);
-      }
-    } catch (err: any) {
-      if (err.message && err.message.includes('Insufficient stock')) {
-        throw err;
-      }
-      console.warn('Supabase change_stock RPC failed, using direct table transaction:', err);
-    }
-
-    // 2. Direct Supabase Table Transaction Fallback
-    try {
-      // Query current inventory on Supabase
-      const { data: invData } = await supabase
-        .from('inventory')
-        .select('quantity_on_hand, version')
-        .eq('product_id', productId)
-        .maybeSingle();
-
-      const before = invData?.quantity_on_hand ?? 0;
-      let after = before;
-
-      if (movementType === 'IN') {
-        after = before + quantity;
-      } else if (movementType === 'OUT' || movementType === 'DAMAGE') {
-        if (before < quantity) {
-          throw new Error(`Insufficient stock. Available quantity: ${before}, requested: ${quantity}.`);
-        }
-        after = before - quantity;
-      } else if (movementType === 'ADJUSTMENT') {
-        after = before + quantity;
-        if (after < 0) {
-          throw new Error(`Adjustment would result in negative stock. Current: ${before}, adjustment: ${quantity}.`);
-        }
-      }
-
-      // Upsert inventory
-      const currentVersion = (invData?.version ?? 0) + 1;
-      const { error: upsertErr } = await supabase
-        .from('inventory')
-        .upsert(
-          {
-            product_id: productId,
-            quantity_on_hand: after,
-            version: currentVersion,
-            updated_at: new Date().toISOString()
-          },
-          { onConflict: 'product_id' }
-        );
-
-      if (upsertErr) {
-        throw new Error(`Inventory table update failed: ${upsertErr.message}`);
-      }
-
-      // Record movement in audit trail
-      const movId = 'mov-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      await supabase.from('inventory_movements').insert({
-        id: movId,
-        product_id: productId,
-        movement_type: movementType,
-        quantity,
-        quantity_before: before,
-        quantity_after: after,
-        supplier_id: supplierId || null,
-        reason,
-        source,
-        performed_by: user?.id || null,
-        reference_id: referenceId || null,
-        idempotency_key: safeKey,
-        created_at: new Date().toISOString()
-      });
-
-      return {
-        success: true,
-        movementId: movId,
-        quantityBefore: before,
-        quantityAfter: after
-      };
-    } catch (directErr: any) {
-      if (directErr.message?.includes('Insufficient stock')) {
-        throw directErr;
-      }
-      console.warn('Direct Supabase inventory update fallback failed:', directErr);
-    }
-  }
-
-  if (prodIndex === -1) {
-    throw new Error('Product not found in database.');
-  }
-
-  const prod = db.products[prodIndex];
-  const before = prod.quantity_on_hand;
-  let after = before;
-
-  if (movementType === 'IN') {
-    after = before + quantity;
-  } else if (movementType === 'OUT' || movementType === 'DAMAGE') {
-    if (before < quantity) {
-      throw new Error(`Insufficient stock. Available quantity: ${before}, requested: ${quantity}.`);
-    }
-    after = before - quantity;
-  } else if (movementType === 'ADJUSTMENT') {
-    if (!reason.trim()) {
-      throw new Error('A specific reason is required for inventory adjustments.');
-    }
-    after = before + quantity;
-    if (after < 0) {
-      throw new Error(`Adjustment would result in negative stock. Current: ${before}, adjustment: ${quantity}.`);
-    }
-  }
-
-  prod.quantity_on_hand = after;
-  prod.inventory_version = (prod.inventory_version || 1) + 1;
-  prod.updated_at = new Date().toISOString();
-  db.products[prodIndex] = prod;
-
-  const movId = 'mov-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
-  const supplier = db.suppliers.find((s) => s.id === (supplierId || prod.default_supplier_id));
-
-  const newMovement: InventoryMovement = {
-    id: movId,
-    product_id: prod.id,
-    product_name: prod.name,
-    product_sku: prod.sku,
-    movement_type: movementType,
-    quantity,
-    quantity_before: before,
-    quantity_after: after,
-    supplier_id: supplier?.id,
-    supplier_name: supplier?.name,
-    reason,
-    source,
-    performed_by: 'current-user',
-    performer_name: performedByName || 'Staff Member',
-    reference_id: referenceId,
-    idempotency_key: idempotencyKey,
-    created_at: new Date().toISOString()
-  };
-
-  db.movements.unshift(newMovement);
-  saveLocalDB(db);
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error('Stock change failed: no response from server');
 
   return {
     success: true,
-    movementId: movId,
-    quantityBefore: before,
-    quantityAfter: after
+    movementId: data.movement_id || 'supabase-' + Date.now(),
+    quantityBefore: data.quantity_before,
+    quantityAfter: data.quantity_after
   };
 }
 
@@ -640,78 +236,61 @@ export async function getMovementHistory(filters?: {
   searchQuery?: string;
 }): Promise<InventoryMovement[]> {
   const supabase = getSupabase();
-  const creds = getSupabaseCredentials();
-  console.log('TRACE: getMovementHistory called');
+  if (!supabase) throw new Error('Supabase is not configured');
 
-  if (supabase) {
-    try {
-      let query = supabase
-        .from('inventory_movements')
-        .select(`
-          id, product_id, movement_type, quantity, quantity_before, quantity_after,
-          supplier_id, reason, source, performed_by, reference_id, idempotency_key, created_at,
-          products(name, sku),
-          suppliers(name),
-          profiles(full_name)
-        `)
-        .order('created_at', { ascending: false });
+  let query = supabase
+    .from('inventory_movements')
+    .select(`
+      id, product_id, movement_type, quantity, quantity_before, quantity_after,
+      supplier_id, reason, source, performed_by, reference_id, idempotency_key, created_at,
+      products(name, sku),
+      suppliers(name),
+      profiles(full_name)
+    `)
+    .order('created_at', { ascending: false });
 
-      if (filters?.productId) {
-        query = query.eq('product_id', filters.productId);
-      }
-      if (filters?.movementType) {
-        query = query.eq('movement_type', filters.movementType);
-      }
-
-      const { data, error } = await query;
-      if (!error && data) {
-        return data.map((item: any) => ({
-          id: item.id,
-          product_id: item.product_id,
-          product_name: item.products?.name || 'Unknown Product',
-          product_sku: item.products?.sku || 'N/A',
-          movement_type: item.movement_type,
-          quantity: item.quantity,
-          quantity_before: item.quantity_before,
-          quantity_after: item.quantity_after,
-          supplier_id: item.supplier_id,
-          supplier_name: item.suppliers?.name,
-          reason: item.reason,
-          source: item.source,
-          performed_by: item.performed_by,
-          performer_name: item.profiles?.full_name || 'System Operator',
-          reference_id: item.reference_id,
-          idempotency_key: item.idempotency_key,
-          created_at: item.created_at
-        }));
-      }
-    } catch (e) {
-      console.warn('Supabase getMovementHistory error:', e);
-    }
-
-    if (creds.isConfigured) {
-      return [];
-    }
-  }
-
-  let list = getLocalDB().movements;
   if (filters?.productId) {
-    list = list.filter((m) => m.product_id === filters.productId);
+    query = query.eq('product_id', filters.productId);
   }
   if (filters?.movementType) {
-    list = list.filter((m) => m.movement_type === filters.movementType);
+    query = query.eq('movement_type', filters.movementType);
   }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  let movements = (data || []).map((item: any) => ({
+    id: item.id,
+    product_id: item.product_id,
+    product_name: item.products?.name || 'Unknown Product',
+    product_sku: item.products?.sku || 'N/A',
+    movement_type: item.movement_type,
+    quantity: item.quantity,
+    quantity_before: item.quantity_before,
+    quantity_after: item.quantity_after,
+    supplier_id: item.supplier_id,
+    supplier_name: item.suppliers?.name,
+    reason: item.reason,
+    source: item.source,
+    performed_by: item.performed_by,
+    performer_name: item.profiles?.full_name || 'System Operator',
+    reference_id: item.reference_id,
+    idempotency_key: item.idempotency_key,
+    created_at: item.created_at
+  }));
+
   if (filters?.searchQuery) {
     const q = filters.searchQuery.toLowerCase();
-    list = list.filter(
-      (m) =>
+    movements = movements.filter(
+      (m: InventoryMovement) =>
         m.product_name?.toLowerCase().includes(q) ||
         m.product_sku?.toLowerCase().includes(q) ||
         m.reason?.toLowerCase().includes(q) ||
         m.supplier_name?.toLowerCase().includes(q)
     );
   }
-  return list;
+
+  return movements;
 }
 
 export interface TopProductSalesItem {
@@ -719,7 +298,7 @@ export interface TopProductSalesItem {
   unitsSold: number;
   transactionsCount: number;
   retailRevenue: number;
-  grossProfit?: number; // Restricted to MANAGER and ADMIN
+  grossProfit?: number;
   lastSoldAt: string;
 }
 
@@ -728,13 +307,12 @@ export interface WeeklySalesAnalysis {
   rankings: TopProductSalesItem[];
   totalUnitsSoldAll: number;
   totalRetailRevenueAll: number;
-  totalGrossProfitAll?: number; // Restricted to MANAGER and ADMIN
+  totalGrossProfitAll?: number;
   days: number;
 }
 
 /**
- * Fetch top selling products based on real outbound movements for the specified timeframe.
- * Enforces role security (strictly hiding cost/profit for STAFF).
+ * Fetch top selling products based on real outbound movements.
  */
 export async function getTopSellingProducts(
   days: number = 7,
@@ -747,19 +325,16 @@ export async function getTopSellingProducts(
 
   const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1000;
 
-  // Filter for OUT movements within the requested timeframe
   let weeklyOutMovements = movements.filter((m) => {
     if (m.movement_type !== 'OUT') return false;
     const mTime = new Date(m.created_at).getTime();
     return !isNaN(mTime) && mTime >= cutoffTime;
   });
 
-  // If no movements found in the last N days, fallback to all recorded OUT movements
   if (weeklyOutMovements.length === 0) {
     weeklyOutMovements = movements.filter((m) => m.movement_type === 'OUT');
   }
 
-  // Aggregate units sold and transaction frequency per product
   const aggMap = new Map<string, { unitsSold: number; count: number; lastSoldAt: string }>();
 
   for (const mov of weeklyOutMovements) {
@@ -773,7 +348,6 @@ export async function getTopSellingProducts(
     aggMap.set(key, existing);
   }
 
-  // Map to catalog products
   const rankings: TopProductSalesItem[] = [];
 
   for (const [key, data] of aggMap.entries()) {
@@ -801,7 +375,6 @@ export async function getTopSellingProducts(
     }
   }
 
-  // Sort descending by units sold
   rankings.sort((a, b) => b.unitsSold - a.unitsSold);
 
   const totalUnitsSoldAll = rankings.reduce((sum, item) => sum + item.unitsSold, 0);
@@ -843,246 +416,91 @@ export async function prepareStockChangeRequest(params: {
     : `prep-${productId}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
   const supabase = getSupabase();
+  if (!supabase) throw new Error('Supabase is not configured');
 
-  if (supabase) {
-    try {
-      const { data, error } = await supabase.rpc('prepare_stock_change', {
-        p_product_id: productId,
-        p_movement_type: movementType,
-        p_quantity: quantity,
-        p_supplier_id: supplierId || null,
-        p_reason: reason,
-        p_source: source,
-        p_idempotency_key: safeKey
-      });
+  const { data, error } = await supabase.rpc('prepare_stock_change', {
+    p_product_id: productId,
+    p_movement_type: movementType,
+    p_quantity: quantity,
+    p_supplier_id: supplierId || null,
+    p_reason: reason,
+    p_source: source,
+    p_idempotency_key: safeKey
+  });
 
-      if (!error && data) {
-        return {
-          id: data.request_id,
-          product_id: data.product_id,
-          product_name: data.product_name,
-          movement_type: data.movement_type,
-          quantity: data.quantity,
-          reason: data.reason,
-          source,
-          status: 'PENDING',
-          expected_quantity: data.current_stock,
-          expected_version: 1,
-          resulting_quantity: data.resulting_stock,
-          idempotency_key: safeKey,
-          expires_at: data.expires_at,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-      }
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error('Failed to prepare stock change request');
 
-      if (error && error.message.includes('Insufficient stock')) throw new Error(error.message);
-      console.warn('Supabase prepare_stock_change RPC returned note:', error?.message);
-    } catch (e: any) {
-      if (e.message && e.message.includes('Insufficient stock')) throw e;
-      console.warn('Supabase prepareStockChange fallback:', e);
-    }
-
-    // Direct Supabase table fallback
-    try {
-      const { data: prodData } = await supabase
-        .from('products')
-        .select(`
-          id, name, sku, default_supplier_id,
-          inventory(quantity_on_hand, version),
-          suppliers(name)
-        `)
-        .eq('id', productId)
-        .maybeSingle();
-
-      if (prodData) {
-        const inv = Array.isArray(prodData.inventory) ? prodData.inventory[0] : prodData.inventory;
-        const supp = Array.isArray(prodData.suppliers) ? prodData.suppliers[0] : prodData.suppliers;
-        const current = inv?.quantity_on_hand ?? 0;
-        let resulting = current;
-
-        if (movementType === 'IN') {
-          resulting = current + quantity;
-        } else {
-          if (current < quantity) {
-            throw new Error(`Insufficient stock. Available quantity: ${current}, requested: ${quantity}.`);
-          }
-          resulting = current - quantity;
-        }
-
-        const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-        let createdReqId = 'req-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6);
-
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          const { data: insertedReq, error: insertErr } = await supabase
-            .from('stock_change_requests')
-            .insert({
-              product_id: productId,
-              movement_type: movementType,
-              quantity,
-              supplier_id: supplierId || prodData.default_supplier_id || null,
-              reason,
-              source,
-              status: 'PENDING',
-              expected_quantity: current,
-              expected_version: inv?.version || 1,
-              resulting_quantity: resulting,
-              idempotency_key: safeKey,
-              expires_at: expiresAt,
-              requested_by: user?.id || null
-            })
-            .select()
-            .maybeSingle();
-
-          if (!insertErr && insertedReq) {
-            createdReqId = insertedReq.id;
-          }
-        } catch (insErr) {
-          console.warn('Direct insert into stock_change_requests note:', insErr);
-        }
-
-        const fallbackReq: StockChangeRequest = {
-          id: createdReqId,
-          product_id: productId,
-          product_name: prodData.name,
-          movement_type: movementType,
-          quantity,
-          supplier_id: supplierId || prodData.default_supplier_id || undefined,
-          supplier_name: supp?.name,
-          reason,
-          source,
-          status: 'PENDING',
-          expected_quantity: current,
-          expected_version: inv?.version || 1,
-          resulting_quantity: resulting,
-          idempotency_key: safeKey,
-          expires_at: expiresAt,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-
-        const db = getLocalDB();
-        db.requests.unshift(fallbackReq);
-        saveLocalDB(db);
-
-        return fallbackReq;
-      }
-    } catch (tblErr: any) {
-      if (tblErr.message?.includes('Insufficient stock')) throw tblErr;
-      console.warn('Direct Supabase prepare fallback error:', tblErr);
-    }
-  }
-
-  const db = getLocalDB();
-  let prod = db.products.find((p) => p.id === productId);
-  if (!prod) {
-    const all = await getProducts();
-    prod = all.find((p) => p.id === productId || p.sku.toLowerCase() === productId.toLowerCase());
-  }
-  if (!prod) throw new Error('Product not found in store catalog.');
-
-  const current = prod.quantity_on_hand;
-  let resulting = current;
-
-  if (movementType === 'IN') {
-    resulting = current + quantity;
-  } else {
-    if (current < quantity) {
-      throw new Error(`Insufficient stock. Available quantity: ${current}, requested: ${quantity}.`);
-    }
-    resulting = current - quantity;
-  }
-
-  const reqId = 'req-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6);
-  const supplier = db.suppliers.find((s) => s.id === (supplierId || prod.default_supplier_id));
-
-  const req: StockChangeRequest = {
-    id: reqId,
-    product_id: prod.id,
-    product_name: prod.name,
-    movement_type: movementType,
-    quantity,
-    supplier_id: supplier?.id,
-    supplier_name: supplier?.name,
-    reason,
+  return {
+    id: data.request_id,
+    product_id: data.product_id,
+    product_name: data.product_name,
+    movement_type: data.movement_type,
+    quantity: data.quantity,
+    reason: data.reason,
     source,
     status: 'PENDING',
-    expected_quantity: current,
-    expected_version: prod.inventory_version || 1,
-    resulting_quantity: resulting,
+    expected_quantity: data.current_stock,
+    expected_version: 1,
+    resulting_quantity: data.resulting_stock,
     idempotency_key: safeKey,
-    expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+    expires_at: data.expires_at,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   };
-
-  db.requests.unshift(req);
-  saveLocalDB(db);
-
-  return req;
 }
 
 /**
- * 2-Step Confirmation: Fetch pending stock change request details by real request_id
+ * 2-Step Confirmation: Fetch pending stock change request details by request_id
  */
 export async function getStockChangeRequestById(requestId: string): Promise<StockChangeRequest | null> {
   if (!requestId) return null;
   const supabase = getSupabase();
+  if (!supabase) throw new Error('Supabase is not configured');
 
-  if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('stock_change_requests')
-        .select(`
-          id, product_id, movement_type, quantity, supplier_id, reason, source,
-          status, expected_quantity, expected_version, resulting_quantity,
-          idempotency_key, expires_at, created_at, updated_at,
-          products(name, sku),
-          suppliers(name)
-        `)
-        .eq('id', requestId)
-        .maybeSingle();
+  const { data, error } = await supabase
+    .from('stock_change_requests')
+    .select(`
+      id, product_id, movement_type, quantity, supplier_id, reason, source,
+      status, expected_quantity, expected_version, resulting_quantity,
+      idempotency_key, expires_at, created_at, updated_at,
+      products(name, sku),
+      suppliers(name)
+    `)
+    .eq('id', requestId)
+    .maybeSingle();
 
-      if (!error && data) {
-        const prod = data.products as any;
-        const supp = data.suppliers as any;
-        const prodName = Array.isArray(prod) ? prod[0]?.name : prod?.name;
-        const suppName = Array.isArray(supp) ? supp[0]?.name : supp?.name;
+  if (error) throw error;
+  if (!data) return null;
 
-        return {
-          id: data.id,
-          product_id: data.product_id,
-          product_name: prodName || 'Inventory Item',
-          movement_type: data.movement_type,
-          quantity: data.quantity,
-          supplier_id: data.supplier_id,
-          supplier_name: suppName,
-          reason: data.reason,
-          source: data.source,
-          status: data.status,
-          expected_quantity: data.expected_quantity,
-          expected_version: data.expected_version || 1,
-          resulting_quantity: data.resulting_quantity,
-          idempotency_key: data.idempotency_key,
-          expires_at: data.expires_at,
-          created_at: data.created_at,
-          updated_at: data.updated_at
-        };
-      }
-    } catch (e) {
-      console.warn('Supabase getStockChangeRequestById error:', e);
-    }
-  }
+  const prod = data.products as any;
+  const supp = data.suppliers as any;
+  const prodName = Array.isArray(prod) ? prod[0]?.name : prod?.name;
+  const suppName = Array.isArray(supp) ? supp[0]?.name : supp?.name;
 
-  const db = getLocalDB();
-  const req = db.requests.find((r) => r.id === requestId);
-  return req || null;
+  return {
+    id: data.id,
+    product_id: data.product_id,
+    product_name: prodName || 'Inventory Item',
+    movement_type: data.movement_type,
+    quantity: data.quantity,
+    supplier_id: data.supplier_id,
+    supplier_name: suppName,
+    reason: data.reason,
+    source: data.source,
+    status: data.status,
+    expected_quantity: data.expected_quantity,
+    expected_version: data.expected_version || 1,
+    resulting_quantity: data.resulting_quantity,
+    idempotency_key: data.idempotency_key,
+    expires_at: data.expires_at,
+    created_at: data.created_at,
+    updated_at: data.updated_at
+  };
 }
 
 /**
  * 2-Step Confirmation: Confirm pending stock change request
- * GUARANTEE: Never fails due to missing idempotency key. Always generates and passes safeKey.
  */
 export async function confirmStockChangeRequest(
   requestId: string,
@@ -1093,99 +511,16 @@ export async function confirmStockChangeRequest(
     ? idempotencyKey.trim()
     : `confirm-${requestId}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
-  const performerLabel = performer?.name ? `${performer.name} (AI Assistant)` : 'AI Assistant Confirmed';
   const supabase = getSupabase();
+  if (!supabase) throw new Error('Supabase is not configured');
 
-  if (supabase) {
-    // 1. First attempt: Supabase RPC confirm_stock_change with safeKey
-    try {
-      const { data, error } = await supabase.rpc('confirm_stock_change', {
-        p_request_id: requestId,
-        p_idempotency_key: safeKey
-      });
-
-      if (!error && data) {
-        return data?.success ?? true;
-      }
-
-      if (error) {
-        console.warn('Supabase confirm_stock_change RPC note:', error.message);
-      }
-    } catch (rpcErr: any) {
-      console.warn('Supabase confirm_stock_change caught:', rpcErr?.message);
-    }
-
-    // 2. Direct Supabase Table Transaction Fallback (if RPC failed or threw)
-    try {
-      const { data: reqData } = await supabase
-        .from('stock_change_requests')
-        .select('*')
-        .eq('id', requestId)
-        .maybeSingle();
-
-      if (reqData) {
-        if (reqData.status === 'CONFIRMED') return true;
-        if (reqData.status === 'CANCELLED') throw new Error('Stock change request was cancelled.');
-
-        // Update inventory and log movement directly with non-null idempotency_key
-        await changeStock({
-          productId: reqData.product_id,
-          movementType: reqData.movement_type,
-          quantity: reqData.quantity,
-          supplierId: reqData.supplier_id,
-          reason: (reqData.reason || 'Stock change') + ` (Approved by ${performer?.name || 'Authorized User'})`,
-          source: 'AI_ASSISTANT_CONFIRMED',
-          performedByName: performerLabel,
-          idempotencyKey: safeKey
-        });
-
-        // Mark request confirmed in Supabase table
-        await supabase
-          .from('stock_change_requests')
-          .update({
-            status: 'CONFIRMED',
-            confirmed_at: new Date().toISOString(),
-            idempotency_key: safeKey,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', requestId);
-
-        return true;
-      }
-    } catch (directErr: any) {
-      console.warn('Direct Supabase confirmation fallback error:', directErr);
-      if (directErr.message?.includes('Insufficient stock')) throw directErr;
-    }
-  }
-
-  // Local storage buffer fallback
-  const db = getLocalDB();
-  const req = db.requests.find((r) => r.id === requestId);
-  if (!req) throw new Error('Stock change request not found.');
-
-  if (req.status === 'CONFIRMED') return true;
-  if (req.status === 'CANCELLED') throw new Error('Request was cancelled.');
-  if (new Date() > new Date(req.expires_at)) {
-    req.status = 'EXPIRED';
-    saveLocalDB(db);
-    throw new Error('Stock change request has expired.');
-  }
-
-  await changeStock({
-    productId: req.product_id,
-    movementType: req.movement_type,
-    quantity: req.quantity,
-    supplierId: req.supplier_id,
-    reason: req.reason + ` (Approved by ${performer?.name || 'Authorized User'})`,
-    performedByName: performerLabel,
-    idempotencyKey: safeKey
+  const { data, error } = await supabase.rpc('confirm_stock_change', {
+    p_request_id: requestId,
+    p_idempotency_key: safeKey
   });
 
-  req.status = 'CONFIRMED';
-  req.confirmed_at = new Date().toISOString();
-  req.idempotency_key = safeKey;
-  saveLocalDB(db);
-  return true;
+  if (error) throw new Error(error.message);
+  return data?.success ?? true;
 }
 
 /**
@@ -1193,36 +528,10 @@ export async function confirmStockChangeRequest(
  */
 export async function cancelStockChangeRequest(requestId: string): Promise<boolean> {
   const supabase = getSupabase();
-  if (supabase) {
-    try {
-      const { error } = await supabase.rpc('cancel_stock_change', { p_request_id: requestId });
-      if (!error) return true;
-    } catch (e: any) {
-      console.warn('Supabase cancelStockChange RPC note:', e?.message);
-    }
+  if (!supabase) throw new Error('Supabase is not configured');
 
-    try {
-      await supabase
-        .from('stock_change_requests')
-        .update({
-          status: 'CANCELLED',
-          cancelled_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', requestId);
-      return true;
-    } catch (directCancelErr: any) {
-      console.warn('Direct Supabase cancel fallback note:', directCancelErr?.message);
-    }
-  }
-
-  const db = getLocalDB();
-  const req = db.requests.find((r) => r.id === requestId);
-  if (req) {
-    req.status = 'CANCELLED';
-    req.cancelled_at = new Date().toISOString();
-    saveLocalDB(db);
-  }
+  const { error } = await supabase.rpc('cancel_stock_change', { p_request_id: requestId });
+  if (error) throw new Error(error.message);
   return true;
 }
 
@@ -1245,216 +554,56 @@ export async function createProduct(
 ): Promise<Product> {
   const safeCost = productData.costPrice !== undefined
     ? Number(productData.costPrice)
-    : Math.round(Number(productData.sellingPrice) * 0.65);
+    : 0;
 
   const supabase = getSupabase();
-  if (supabase) {
-    try {
-      const { data, error } = await supabase.rpc('create_product', {
-        p_sku: productData.sku.toUpperCase(),
-        p_name: productData.name,
-        p_description: productData.description,
-        p_category_id: productData.categoryId,
-        p_supplier_id: productData.defaultSupplierId || null,
-        p_selling_price: productData.sellingPrice,
-        p_cost_price: safeCost,
-        p_reorder_level: productData.reorderLevel
-      });
+  if (!supabase) throw new Error('Supabase is not configured');
 
-      const prodId = data?.product_id || data?.id;
-      if (!error && prodId) {
-        if (productData.initialStock > 0) {
-          await supabase.from('inventory').upsert(
-            {
-              product_id: prodId,
-              quantity_on_hand: productData.initialStock,
-              version: 1,
-              updated_at: new Date().toISOString()
-            },
-            { onConflict: 'product_id' }
-          );
+  const { data, error } = await supabase.rpc('create_product', {
+    p_sku: productData.sku.toUpperCase(),
+    p_name: productData.name,
+    p_description: productData.description,
+    p_category_id: productData.categoryId,
+    p_supplier_id: productData.defaultSupplierId || null,
+    p_selling_price: productData.sellingPrice,
+    p_cost_price: safeCost,
+    p_reorder_level: productData.reorderLevel,
+    p_initial_stock: productData.initialStock
+  });
 
-          await supabase.from('inventory_movements').insert({
-            product_id: prodId,
-            movement_type: 'IN',
-            quantity: productData.initialStock,
-            quantity_before: 0,
-            quantity_after: productData.initialStock,
-            supplier_id: productData.defaultSupplierId || null,
-            reason: 'Initial stock intake',
-            source: 'SYSTEM',
-            created_at: new Date().toISOString()
-          });
-        }
+  if (error) throw new Error(error.message);
 
-        const created = await getProductById(prodId, role);
-        if (created) return created;
-      }
-    } catch (e) {
-      console.warn('Supabase create_product RPC fallback:', e);
-    }
+  const prodId = data?.product_id || data?.id;
+  if (!prodId) throw new Error('Failed to create product: no product ID returned');
 
-    // Direct table insert fallback
-    try {
-      const { data: newProdRow, error: insertProdErr } = await supabase
-        .from('products')
-        .insert({
-          sku: productData.sku.toUpperCase(),
-          name: productData.name,
-          description: productData.description,
-          category_id: productData.categoryId,
-          default_supplier_id: productData.defaultSupplierId || null,
-          selling_price: productData.sellingPrice,
-          cost_price: safeCost,
-          reorder_level: productData.reorderLevel,
-          is_active: true
-        })
-        .select()
-        .single();
-
-      if (!insertProdErr && newProdRow) {
-        const prodId = newProdRow.id;
-        if (productData.initialStock >= 0) {
-          await supabase.from('inventory').upsert(
-            {
-              product_id: prodId,
-              quantity_on_hand: productData.initialStock,
-              version: 1,
-              updated_at: new Date().toISOString()
-            },
-            { onConflict: 'product_id' }
-          );
-        }
-
-        const created = await getProductById(prodId, role);
-        if (created) return created;
-      }
-    } catch (e) {
-      console.warn('Supabase direct insert product fallback:', e);
-    }
-  }
-
-  const db = getLocalDB();
-  if (db.products.some((p) => p.sku.toLowerCase() === productData.sku.toLowerCase())) {
-    throw new Error(`A product with SKU "${productData.sku}" already exists.`);
-  }
-
-  const cat = db.categories.find((c) => c.id === productData.categoryId);
-  const sup = db.suppliers.find((s) => s.id === productData.defaultSupplierId);
-
-  const newProd: Product = {
-    id: 'prod-' + Date.now(),
-    sku: productData.sku.toUpperCase(),
-    name: productData.name,
-    description: productData.description,
-    category_id: productData.categoryId,
-    category_name: cat?.name || 'General',
-    default_supplier_id: productData.defaultSupplierId,
-    supplier_name: sup?.name || 'Unassigned',
-    selling_price: productData.sellingPrice,
-    cost_price: safeCost,
-    profit: productData.sellingPrice - safeCost,
-    profit_margin_percent: Number(
-      (((productData.sellingPrice - safeCost) / productData.sellingPrice) * 100).toFixed(2)
-    ),
-    reorder_level: productData.reorderLevel,
-    quantity_on_hand: productData.initialStock,
-    inventory_version: 1,
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  };
-
-  db.products.unshift(newProd);
-
-  if (productData.initialStock > 0) {
-    db.movements.unshift({
-      id: 'mov-' + Date.now(),
-      product_id: newProd.id,
-      product_name: newProd.name,
-      product_sku: newProd.sku,
-      movement_type: 'IN',
-      quantity: productData.initialStock,
-      quantity_before: 0,
-      quantity_after: productData.initialStock,
-      supplier_id: sup?.id,
-      supplier_name: sup?.name,
-      reason: 'Initial Product Stock Setup',
-      source: 'SYSTEM',
-      created_at: new Date().toISOString()
-    });
-  }
-
-  saveLocalDB(db);
+  const created = await getProductById(prodId, role);
+  if (!created) throw new Error('Product was created but could not be fetched');
 
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('stocksense:inventory_updated'));
   }
 
-  return newProd;
+  return created;
 }
 
 /**
- * Remove an existing stock item from the database.
+ * Remove an existing stock item from the database (soft delete).
  */
 export async function deleteProduct(productId: string): Promise<boolean> {
   const supabase = getSupabase();
-  let supabaseHandled = false;
+  if (!supabase) throw new Error('Supabase is not configured');
 
-  if (supabase) {
-    try {
-      // 1. Soft delete product on Supabase so existing immutable audit logs remain valid
-      const { error: updateErr } = await supabase
-        .from('products')
-        .update({ is_active: false, updated_at: new Date().toISOString() })
-        .eq('id', productId);
+  const { error: updateErr } = await supabase
+    .from('products')
+    .update({ is_active: false, updated_at: new Date().toISOString() })
+    .eq('id', productId);
 
-      if (!updateErr) {
-        // Zero out inventory row on Supabase
-        await supabase
-          .from('inventory')
-          .update({ quantity_on_hand: 0, updated_at: new Date().toISOString() })
-          .eq('product_id', productId);
+  if (updateErr) throw new Error(updateErr.message);
 
-        supabaseHandled = true;
-      } else {
-        // Fallback: Try hard delete
-        const { error: delErr } = await supabase.from('products').delete().eq('id', productId);
-        if (!delErr) supabaseHandled = true;
-      }
-    } catch (e) {
-      console.warn('Supabase deleteProduct error:', e);
-    }
-  }
-
-  const db = getLocalDB();
-  const index = db.products.findIndex((p) => p.id === productId);
-
-  if (index !== -1) {
-    const removed = db.products[index];
-    db.products.splice(index, 1);
-
-    // If this item had stock on hand, record the removal in movement history
-    if ((removed.quantity_on_hand || 0) > 0) {
-      db.movements.unshift({
-        id: 'mov-' + Date.now(),
-        product_id: removed.id,
-        product_name: removed.name,
-        product_sku: removed.sku,
-        movement_type: 'OUT',
-        quantity: removed.quantity_on_hand,
-        quantity_before: removed.quantity_on_hand,
-        quantity_after: 0,
-        reason: `Stock item removed from database catalog (${removed.name})`,
-        source: 'SYSTEM',
-        created_at: new Date().toISOString()
-      });
-    }
-
-    saveLocalDB(db);
-  } else if (!supabaseHandled) {
-    throw new Error('Stock item not found in the database.');
-  }
+  await supabase
+    .from('inventory')
+    .update({ quantity_on_hand: 0, updated_at: new Date().toISOString() })
+    .eq('product_id', productId);
 
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('stocksense:inventory_updated'));
@@ -1477,31 +626,15 @@ export async function updateProductPrices(
   }
 
   const supabase = getSupabase();
-  if (supabase) {
-    try {
-      const { error } = await supabase.rpc('update_product_prices', {
-        p_product_id: productId,
-        p_selling_price: sellingPrice,
-        p_cost_price: costPrice
-      });
-      if (error) throw new Error(error.message);
-      return true;
-    } catch (e) {
-      console.warn('Supabase updateProductPrices fallback:', e);
-    }
-  }
+  if (!supabase) throw new Error('Supabase is not configured');
 
-  const db = getLocalDB();
-  const prod = db.products.find((p) => p.id === productId);
-  if (!prod) throw new Error('Product not found.');
+  const { error } = await supabase.rpc('update_product_prices', {
+    p_product_id: productId,
+    p_selling_price: sellingPrice,
+    p_cost_price: costPrice
+  });
 
-  prod.selling_price = sellingPrice;
-  prod.cost_price = costPrice;
-  prod.profit = sellingPrice - costPrice;
-  prod.profit_margin_percent = Number((((sellingPrice - costPrice) / sellingPrice) * 100).toFixed(2));
-  prod.updated_at = new Date().toISOString();
-
-  saveLocalDB(db);
+  if (error) throw new Error(error.message);
   return true;
 }
 
@@ -1510,36 +643,27 @@ export async function updateProductPrices(
  */
 export async function getUsers(): Promise<Profile[]> {
   const supabase = getSupabase();
-  console.log('TRACE: getUsers called');
-  if (supabase) {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*');
+  if (!supabase) throw new Error('Supabase is not configured');
 
-        if (!error && data && data.length > 0) {
-          return data.map((p: any) => {
-            const rawRole = (p.role || 'staff').toString().toUpperCase();
-            const verifiedRole: UserRole = (rawRole === 'ADMIN' || rawRole === 'MANAGER') ? rawRole : 'STAFF';
-            return {
-              id: p.id,
-              full_name: p.full_name || 'Staff Member',
-              email: p.email || '',
-              role: verifiedRole,
-              is_active: p.is_active ?? true,
-              created_at: p.created_at,
-              updated_at: p.updated_at
-            };
-          });
-        }
-      }
-    } catch (e) {
-      console.warn('Supabase getUsers error:', e);
-    }
-  }
-  return getLocalDB().users;
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('No active session');
+
+  const { data, error } = await supabase.from('profiles').select('*');
+  if (error) throw error;
+
+  return (data || []).map((p: any) => {
+    const rawRole = (p.role || 'staff').toString().toUpperCase();
+    const verifiedRole: UserRole = (rawRole === 'ADMIN' || rawRole === 'MANAGER') ? rawRole : 'STAFF';
+    return {
+      id: p.id,
+      full_name: p.full_name || 'Staff Member',
+      email: p.email || '',
+      role: verifiedRole,
+      is_active: p.is_active ?? true,
+      created_at: p.created_at,
+      updated_at: p.updated_at
+    };
+  });
 }
 
 /**
@@ -1555,41 +679,14 @@ export async function changeUserRole(
   }
 
   const supabase = getSupabase();
-  if (supabase) {
-    try {
-      const { error: directErr } = await supabase
-        .from('profiles')
-        .update({ role: newRole.toLowerCase(), updated_at: new Date().toISOString() })
-        .eq('id', targetUserId);
+  if (!supabase) throw new Error('Supabase is not configured');
 
-      if (!directErr) return true;
+  const { error } = await supabase.rpc('change_user_role', {
+    p_target_user_id: targetUserId,
+    p_new_role: newRole.toLowerCase()
+  });
 
-      const { error: rpcErr } = await supabase.rpc('change_user_role', {
-        p_target_user_id: targetUserId,
-        p_new_role: newRole.toLowerCase()
-      });
-      if (!rpcErr) return true;
-      if (directErr) throw new Error(directErr.message);
-    } catch (e: any) {
-      console.warn('Supabase changeUserRole error:', e);
-      throw e;
-    }
-  }
-
-  const db = getLocalDB();
-  const target = db.users.find((u) => u.id === targetUserId);
-  if (!target) throw new Error('User not found.');
-
-  if (target.role === 'ADMIN' && newRole !== 'ADMIN') {
-    const activeAdmins = db.users.filter((u) => u.role === 'ADMIN' && u.is_active);
-    if (activeAdmins.length <= 1) {
-      throw new Error('Operation blocked: At least one active Administrator must remain.');
-    }
-  }
-
-  target.role = newRole;
-  target.updated_at = new Date().toISOString();
-  saveLocalDB(db);
+  if (error) throw new Error(error.message);
   return true;
 }
 
@@ -1607,43 +704,14 @@ export async function setUserActive(
   }
 
   const supabase = getSupabase();
-  if (supabase) {
-    try {
-      const { error: directErr } = await supabase
-        .from('profiles')
-        .update({ is_active: isActive, updated_at: new Date().toISOString() })
-        .eq('id', targetUserId);
+  if (!supabase) throw new Error('Supabase is not configured');
 
-      if (!directErr) return true;
+  const { error } = await supabase.rpc('set_user_active', {
+    p_target_user_id: targetUserId,
+    p_is_active: isActive
+  });
 
-      const { error } = await supabase.rpc('set_user_active', {
-        p_target_user_id: targetUserId,
-        p_is_active: isActive
-      });
-      if (!error) return true;
-    } catch (e) {
-      console.warn('Supabase setUserActive error:', e);
-    }
-  }
-
-  const db = getLocalDB();
-  const target = db.users.find((u) => u.id === targetUserId);
-  if (!target) throw new Error('User not found.');
-
-  if (callerRole === 'MANAGER' && target.role === 'ADMIN') {
-    throw new Error('Access Denied: Managers cannot deactivate Administrators.');
-  }
-
-  if (target.role === 'ADMIN' && !isActive) {
-    const activeAdmins = db.users.filter((u) => u.role === 'ADMIN' && u.is_active);
-    if (activeAdmins.length <= 1) {
-      throw new Error('Operation blocked: Cannot deactivate the sole active Administrator.');
-    }
-  }
-
-  target.is_active = isActive;
-  target.updated_at = new Date().toISOString();
-  saveLocalDB(db);
+  if (error) throw new Error(error.message);
   return true;
 }
 
@@ -1657,65 +725,60 @@ export async function addStaffUser(user: {
   password?: string;
 }): Promise<Profile> {
   const supabase = getSupabase();
-  let supabaseUserId: string | null = null;
+  if (!supabase) throw new Error('Supabase is not configured');
 
-  if (supabase && user.password) {
-    try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: user.email,
-        password: user.password,
-        options: {
-          data: {
-            full_name: user.fullName
-          }
-        }
-      });
-      if (authError) {
-        console.warn('Supabase auth signup note:', authError.message);
-      } else if (authData.user) {
-        supabaseUserId = authData.user.id;
-        await supabase.from('profiles').upsert({
-          id: authData.user.id,
-          full_name: user.fullName,
-          email: user.email,
-          role: user.role,
-          is_active: true,
-          updated_at: new Date().toISOString()
-        });
+  if (!user.password) {
+    throw new Error('A password is required to create a new staff account.');
+  }
+
+  const { data: authData, error: authError } = await supabase.auth.signUp({
+    email: user.email,
+    password: user.password,
+    options: {
+      data: {
+        full_name: user.fullName
       }
-    } catch (e) {
-      console.warn('Supabase addStaffUser fallback:', e);
     }
+  });
+
+  if (authError) throw new Error(authError.message);
+  if (!authData.user) throw new Error('Failed to create auth account');
+
+  // The handle_new_user trigger auto-creates a STAFF profile.
+  // If the role should be different, update it via RPC (requires admin session).
+  if (user.role !== 'STAFF') {
+    await supabase.rpc('change_user_role', {
+      p_target_user_id: authData.user.id,
+      p_new_role: user.role.toLowerCase()
+    });
   }
 
-  const db = getLocalDB();
-  if (db.users.some((u) => u.email.toLowerCase() === user.email.toLowerCase())) {
-    throw new Error('A user with this email already exists.');
-  }
+  // Fetch the created profile
+  const { data: profile, error: profileErr } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', authData.user.id)
+    .maybeSingle();
 
-  const newUser: Profile = {
-    id: supabaseUserId || ('user-' + Date.now()),
+  if (profileErr) throw new Error(profileErr.message);
+
+  return {
+    id: authData.user.id,
     full_name: user.fullName,
     email: user.email,
     role: user.role,
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+    is_active: profile?.is_active ?? true,
+    created_at: profile?.created_at || new Date().toISOString(),
+    updated_at: profile?.updated_at || new Date().toISOString()
   };
-
-  db.users.push(newUser);
-  saveLocalDB(db);
-  return newUser;
 }
 
 /**
  * Fetch high-level inventory metrics for the dashboard.
  */
 export async function getDashboardMetrics(role: UserRole): Promise<DashboardMetrics> {
-  console.log('TRACE: getDashboardMetrics(role:', role, ')');
   const products = await getProducts(role);
   const movements = await getMovementHistory();
-  console.log('TRACE: getDashboardMetrics loaded products:', products.length, 'movements:', movements.length);
 
   const totalProducts = products.length;
   const totalInventoryUnits = products.reduce((acc, p) => acc + p.quantity_on_hand, 0);
